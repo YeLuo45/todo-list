@@ -22,15 +22,15 @@ export default function TaskList() {
   return (
     <div className="task-list">
       <div className="task-list-header">
-        <h2>Tasks ({tasks.length})</h2>
+        <h2>任务 ({tasks.length})</h2>
         <button className="btn-add" onClick={() => setShowForm(true)}>
-          + New Task
+          + 新建任务
         </button>
       </div>
 
       {tasks.length === 0 ? (
         <div className="empty-state">
-          <p>No tasks yet. Create one to get started!</p>
+          <p>暂无任务，创建一个开始吧！</p>
         </div>
       ) : (
         <div className="task-items">

@@ -8,9 +8,9 @@ const priorityColors = {
 };
 
 const statusLabels = {
-  todo: 'To Do',
-  'in-progress': 'In Progress',
-  done: 'Done',
+  todo: '待办',
+  'in-progress': '进行中',
+  done: '已完成',
 };
 
 export default function TaskItem({ task, onEdit }) {
@@ -48,9 +48,9 @@ export default function TaskItem({ task, onEdit }) {
           value={task.status}
           onChange={handleStatusChange}
         >
-          <option value="todo">To Do</option>
-          <option value="in-progress">In Progress</option>
-          <option value="done">Done</option>
+          <option value="todo">待办</option>
+          <option value="in-progress">进行中</option>
+          <option value="done">已完成</option>
         </select>
 
         <div className="task-content">
@@ -83,8 +83,8 @@ export default function TaskItem({ task, onEdit }) {
         </div>
 
         <div className="task-actions">
-          <button className="btn-edit" onClick={() => onEdit(task)}>Edit</button>
-          <button className="btn-delete" onClick={handleDelete}>Delete</button>
+          <button className="btn-edit" onClick={() => onEdit(task)}>编辑</button>
+          <button className="btn-delete" onClick={handleDelete}>删除</button>
         </div>
       </div>
     </div>

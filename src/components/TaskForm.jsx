@@ -10,6 +10,8 @@ export default function TaskForm({ editingTask, onClose }) {
   const [priority, setPriority] = useState('medium');
   const [status, setStatus] = useState('todo');
   const [dueDate, setDueDate] = useState('');
+  const [recurrence, setRecurrence] = useState(''); // '', 'daily', 'weekly', 'monthly'
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
 
   useEffect(() => {
     if (editingTask) {
@@ -19,6 +21,8 @@ export default function TaskForm({ editingTask, onClose }) {
       setPriority(editingTask.priority || 'medium');
       setStatus(editingTask.status || 'todo');
       setDueDate(editingTask.dueDate || '');
+      setRecurrence(editingTask.recurrence || '');
+      setRecurrenceEndDate(editingTask.recurrenceEndDate || '');
     }
   }, [editingTask]);
 
@@ -38,6 +42,8 @@ export default function TaskForm({ editingTask, onClose }) {
       priority,
       status,
       dueDate: dueDate || null,
+      recurrence: recurrence || null,
+      recurrenceEndDate: recurrenceEndDate || null,
     };
 
     if (editingTask) {
@@ -55,50 +61,50 @@ export default function TaskForm({ editingTask, onClose }) {
         <h3>{editingTask ? 'Edit Task' : 'New Task'}</h3>
 
         <div className="form-group">
-          <label>Title *</label>
+          <label>标题 *</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Task title"
+            placeholder="任务标题"
             required
             autoFocus
           />
         </div>
 
         <div className="form-group">
-          <label>Description</label>
+          <label>描述</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Task description (optional)"
+            placeholder="任务描述（可选）"
             rows={3}
           />
         </div>
 
         <div className="form-row">
           <div className="form-group">
-            <label>Priority</label>
+            <label>优先级</label>
             <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
+              <option value="high">高</option>
+              <option value="medium">中</option>
+              <option value="low">低</option>
             </select>
           </div>
 
           <div className="form-group">
-            <label>Status</label>
+            <label>状态</label>
             <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="todo">To Do</option>
-              <option value="in-progress">In Progress</option>
-              <option value="done">Done</option>
+              <option value="todo">待办</option>
+              <option value="in-progress">进行中</option>
+              <option value="done">已完成</option>
             </select>
           </div>
         </div>
 
         <div className="form-row">
           <div className="form-group">
-            <label>Due Date</label>
+            <label>截止日期</label>
             <input
               type="date"
               value={dueDate}
@@ -107,22 +113,45 @@ export default function TaskForm({ editingTask, onClose }) {
           </div>
 
           <div className="form-group">
-            <label>Tags</label>
+            <label>标签</label>
             <input
               type="text"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="work, home, urgent (comma separated)"
+              placeholder="工作, 生活, 紧急 (逗号分隔)"
             />
           </div>
         </div>
 
+        <div className="form-row">
+          <div className="form-group">
+            <label>重复周期</label>
+            <select value={recurrence} onChange={(e) => setRecurrence(e.target.value)}>
+              <option value="">不重复</option>
+              <option value="daily">每天</option>
+              <option value="weekly">每周</option>
+              <option value="monthly">每月</option>
+            </select>
+          </div>
+
+          {recurrence && (
+            <div className="form-group">
+              <label>重复结束日期</label>
+              <input
+                type="date"
+                value={recurrenceEndDate}
+                onChange={(e) => setRecurrenceEndDate(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
         <div className="form-actions">
           <button type="button" className="btn-cancel" onClick={onClose}>
-            Cancel
+            取消
           </button>
           <button type="submit" className="btn-submit">
-            {editingTask ? 'Update' : 'Create'}
+            {editingTask ? '更新' : '创建'}
           </button>
         </div>
       </form>
