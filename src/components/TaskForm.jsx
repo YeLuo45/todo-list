@@ -7,7 +7,7 @@ export default function TaskForm({ editingTask, onClose }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
-  const [priority, setPriority] = useState('medium');
+  const [priority, setPriority] = useState('P1');
   const [status, setStatus] = useState('todo');
   const [dueDate, setDueDate] = useState('');
   const [recurrence, setRecurrence] = useState(''); // '', 'daily', 'weekly', 'monthly'
@@ -18,7 +18,7 @@ export default function TaskForm({ editingTask, onClose }) {
       setTitle(editingTask.title || '');
       setContent(editingTask.content || '');
       setTags(editingTask.tags?.join(', ') || '');
-      setPriority(editingTask.priority || 'medium');
+      setPriority(editingTask.priority || 'P1');
       setStatus(editingTask.status || 'todo');
       setDueDate(editingTask.dueDate || '');
       setRecurrence(editingTask.recurrence || '');
@@ -86,9 +86,9 @@ export default function TaskForm({ editingTask, onClose }) {
           <div className="form-group">
             <label>优先级</label>
             <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-              <option value="high">高</option>
-              <option value="medium">中</option>
-              <option value="low">低</option>
+              <option value="P0">P0</option>
+              <option value="P1">P1</option>
+              <option value="P2">P2</option>
             </select>
           </div>
 

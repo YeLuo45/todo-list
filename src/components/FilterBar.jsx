@@ -3,8 +3,8 @@ import './FilterBar.css';
 
 export default function FilterBar() {
   const {
-    filterTag,
-    setFilterTag,
+    filterTags,
+    setFilterTags,
     searchQuery,
     setSearchQuery,
     sortBy,
@@ -19,6 +19,14 @@ export default function FilterBar() {
   const allTags = getAllTags();
 
   const today = new Date().toISOString().split('T')[0];
+
+  const toggleTag = (tag) => {
+    setFilterTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
 
   return (
     <div className="filter-bar">
@@ -71,16 +79,16 @@ export default function FilterBar() {
         <div className="tag-filters">
           <span className="tag-filter-label">按标签筛选：</span>
           <button
-            className={`tag-filter-btn ${filterTag === '' ? 'active' : ''}`}
-            onClick={() => setFilterTag('')}
+            className={`tag-filter-btn ${filterTags.length === 0 ? 'active' : ''}`}
+            onClick={() => setFilterTags([])}
           >
             全部
           </button>
           {allTags.map((tag) => (
             <button
               key={tag}
-              className={`tag-filter-btn ${filterTag === tag ? 'active' : ''}`}
-              onClick={() => setFilterTag(tag)}
+              className={`tag-filter-btn ${filterTags.includes(tag) ? 'active' : ''}`}
+              onClick={() => toggleTag(tag)}
             >
               {tag}
             </button>

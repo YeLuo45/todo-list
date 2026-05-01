@@ -54,6 +54,10 @@
   color: #999;
 }
 
+.task-title.overdue-title {
+  color: #ef4444;
+}
+
 .task-priority {
   font-size: 10px;
   padding: 2px 8px;

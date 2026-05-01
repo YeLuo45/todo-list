@@ -2,9 +2,9 @@ import { useTaskContext } from '../context/TaskContext';
 import './TaskItem.css';
 
 const priorityColors = {
-  high: '#e53935',
-  medium: '#fb8c00',
-  low: '#43a047',
+  P0: '#ef4444',
+  P1: '#f59e0b',
+  P2: '#9ca3af',
 };
 
 const statusLabels = {
@@ -55,7 +55,7 @@ export default function TaskItem({ task, onEdit }) {
 
         <div className="task-content">
           <div className="task-header">
-            <span className="task-title">{task.title}</span>
+            <span className={`task-title ${isOverdue() ? 'overdue-title' : ''}`}>{task.title}</span>
             <span
               className="task-priority"
               style={{ backgroundColor: priorityColors[task.priority] }}

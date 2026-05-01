@@ -3,9 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 const TaskContext = createContext(null);
 
-const STORAGE_KEY = 'hermes-todo-tasks';
+const STORAGE_KEY = 'hermes_todos_v2';
+const LEGACY_STORAGE_KEY = 'hermes-todo-tasks';
 const SCHEMA_VERSION_KEY = 'hermes-todo-schema-version';
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 // Data migration functions
 const migrations = {
@@ -19,24 +20,29 @@ const migrations = {
       // status values remain: 'todo', 'in-progress', 'done'
     }));
   },
+  3: (tasks) => {
+    // v3: Convert priority from high/medium/low to P0/P1/P2, migrate from legacy storage key
+    const priorityMap = { high: 'P0', medium: 'P1', low: 'P2' };
+    return tasks.map(task => ({
+      ...task,
+      priority: priorityMap[task.priority] || task.priority || 'P1',
+    }));
+  },
 };
 
 const migrateData = (tasks) => {
-  const schemaVersion = parseInt(localStorage.getItem(SCHEMA_KEY) || '1', 10);
   let migratedTasks = tasks;
-  
-  for (let v = schemaVersion + 1; v <= CURRENT_SCHEMA_VERSION; v++) {
+
+  for (let v = 2; v <= CURRENT_SCHEMA_VERSION; v++) {
     if (migrations[v]) {
       migratedTasks = migrations[v](migratedTasks);
       console.log(`[TaskContext] Migrated data to v${v}`);
     }
   }
-  
-  localStorage.setItem(SCHEMA_KEY, String(CURRENT_SCHEMA_VERSION));
+
+  localStorage.setItem(SCHEMA_VERSION_KEY, String(CURRENT_SCHEMA_VERSION));
   return migratedTasks;
 };
-
-const SCHEMA_KEY = 'hermes-todo-schema-version';
 
 // Detect if running in Electron
 const isElectron = () => {
@@ -56,10 +62,23 @@ const loadTasks = async () => {
     }
   } else {
     try {
+      // Check new storage key first
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const tasks = JSON.parse(stored);
         return migrateData(tasks);
+      }
+      // Fallback to legacy storage key and migrate
+      const legacyStored = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacyStored) {
+        const tasks = JSON.parse(legacyStored);
+        const migrated = migrateData(tasks);
+        // Save to new storage key
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        // Clear legacy
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+        console.log('[TaskContext] Migrated legacy data to hermes_todos_v2');
+        return migrated;
       }
     } catch (e) {
       console.error('Failed to load tasks from localStorage', e);
@@ -91,7 +110,7 @@ const saveTasks = async (tasks) => {
 
 export function TaskProvider({ children }) {
   const [tasks, setTasks] = useState([]);
-  const [filterTag, setFilterTag] = useState('');
+  const [filterTags, setFilterTags] = useState([]); // multi-select tags
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [isLoading, setIsLoading] = useState(true);
@@ -171,7 +190,7 @@ export function TaskProvider({ children }) {
       title: taskData.title || '',
       content: taskData.content || '',
       tags: taskData.tags || [],
-      priority: taskData.priority || 'medium',
+      priority: taskData.priority || 'P1',
       status: taskData.status || 'todo',
       dueDate: taskData.dueDate || null,
       recurrence: taskData.recurrence || null,
@@ -225,7 +244,9 @@ export function TaskProvider({ children }) {
         const taskDate = task.generatedDate || task.createdAt;
         if (!taskDate.startsWith(dateFilter)) return false;
       }
-      if (filterTag && !task.tags.includes(filterTag)) return false;
+      // Multi-select tag filter: show task if it has ANY of the selected tags
+      if (filterTags.length > 0 && !task.tags.some(tag => filterTags.includes(tag))) return false;
+      // Search filter: search in title + description (content)
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         if (
@@ -244,8 +265,11 @@ export function TaskProvider({ children }) {
           if (!b.dueDate) return -1;
           return new Date(a.dueDate) - new Date(b.dueDate);
         case 'priority': {
-          const order = { high: 0, medium: 1, low: 2 };
-          return order[a.priority] - order[b.priority];
+          // P0=0 (highest), P1=1, P2=2, nulls last
+          const order = { 'P0': 0, 'P1': 1, 'P2': 2 };
+          const aOrder = order[a.priority] ?? 3;
+          const bOrder = order[b.priority] ?? 3;
+          return aOrder - bOrder;
         }
         case 'createdAt':
         default:
@@ -258,8 +282,8 @@ export function TaskProvider({ children }) {
       value={{
         tasks: filteredTasks,
         allTasks: tasks,
-        filterTag,
-        setFilterTag,
+        filterTags,
+        setFilterTags,
         searchQuery,
         setSearchQuery,
         sortBy,
