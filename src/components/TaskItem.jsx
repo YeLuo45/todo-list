@@ -48,6 +48,28 @@ export default function TaskItem({ task, onEdit }) {
   const completedSubs = (task.subtasks || []).filter((s) => s.done).length;
   const totalSubs = (task.subtasks || []).length;
 
+  // Duration
+  const formatDuration = (ms) => {
+    if (!ms || ms <= 0) return null;
+    const m = Math.floor(ms / 60000);
+    if (m < 1) return '< 1 分钟';
+    if (m < 60) return `${m} 分钟`;
+    const h = Math.floor(m / 60);
+    const rem = m % 60;
+    return rem > 0 ? `${h}h ${rem}m` : `${h} 小时`;
+  };
+
+  let durationStr = null;
+  if (task.startTime && task.endTime) {
+    const ms = new Date(task.endTime) - new Date(task.startTime);
+    durationStr = formatDuration(ms);
+  } else if (task.startTime && task.status === 'in-progress') {
+    const ms = Date.now() - new Date(task.startTime);
+    durationStr = `⏱ ${formatDuration(ms)} (进行中)`;
+  } else if (task.startTime && task.status === 'done') {
+    durationStr = '⏱ 已完成';
+  }
+
   const cardClass = [
     'task-item',
     task.status === 'done' ? 'done' : '',
@@ -118,6 +140,9 @@ export default function TaskItem({ task, onEdit }) {
             <span className={`subtask-badge ${completedSubs === totalSubs ? 'all-done' : ''}`}>
               ☑️ {completedSubs}/{totalSubs}
             </span>
+          )}
+          {durationStr && (
+            <span className="task-duration">{durationStr}</span>
           )}
         </div>
 

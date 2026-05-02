@@ -11,7 +11,17 @@ const COLUMNS = [
 
 const priorityColors = { P0: '#ef4444', P1: '#f59e0b', P2: '#9ca3b8' };
 
-function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
+function formatDuration(ms) {
+  if (!ms || ms <= 0) return null;
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return '< 1 分钟';
+  if (m < 60) return `${m} 分钟`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem > 0 ? `${h}h ${rem}m` : `${h} 小时`;
+}
+
+function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging, showDuration }) {
   const { deleteTask, isTaskBlocked } = useTaskContext();
   const [isHovered, setIsHovered] = useState(false);
   const blocked = isTaskBlocked(task.id);
@@ -24,9 +34,7 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
     if (onDragStart) onDragStart(task.id);
   };
 
-  const handleDragEnd = () => {
-    if (onDragEnd) onDragEnd();
-  };
+  const handleDragEnd = () => { if (onDragEnd) onDragEnd(); };
 
   const handleDelete = (e) => {
     e.stopPropagation();
@@ -42,17 +50,26 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
   const completedSubs = (task.subtasks || []).filter((s) => s.done).length;
   const totalSubs = (task.subtasks || []).length;
 
+  // Duration
+  let durationStr = null;
+  if (showDuration && task.startTime && task.endTime) {
+    const ms = new Date(task.endTime) - new Date(task.startTime);
+    durationStr = formatDuration(ms);
+  } else if (showDuration && task.startTime && task.status === 'in-progress') {
+    const ms = Date.now() - new Date(task.startTime);
+    durationStr = formatDuration(ms) + ' (进行中)';
+  }
+
   return (
     <div
       className={[
         'kanban-card',
         isDragging ? 'dragging' : '',
-        isHovered ? 'hovered' : '',
+        blocked ? 'blocked' : '',
         urgency === 'overdue' ? 'overdue-card' : '',
         urgency === 'urgent' ? 'urgent-card' : '',
         urgency === 'today' ? 'today-card' : '',
         urgency === 'upcoming' ? 'upcoming-card' : '',
-        blocked ? 'blocked' : '',
       ].filter(Boolean).join(' ')}
       draggable={!blocked}
       onDragStart={blocked ? undefined : handleDragStart}
@@ -64,7 +81,7 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
         <span className="kanban-priority" style={{ backgroundColor: priorityColors[task.priority] }}>
           {task.priority}
         </span>
-        {blocked && <span className="blocked-icon" title="等待依赖任务完成">🔒</span>}
+        {blocked && <span className="blocked-icon" title="等待依赖">🔒</span>}
         {isHovered && !blocked && (
           <button className="kanban-btn-delete" onClick={handleDelete}>×</button>
         )}
@@ -74,24 +91,23 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
       <div className="kanban-card-meta">
         {task.tags.length > 0 && (
           <div className="kanban-tags">
-            {task.tags.map((tag) => (
-              <span key={tag} className="kanban-tag">{tag}</span>
-            ))}
+            {task.tags.map((tag) => <span key={tag} className="kanban-tag">{tag}</span>)}
           </div>
         )}
         {task.dueDate && (
-          <span className={`kanban-due ${urgency === 'overdue' ? 'overdue' : ''} ${urgency === 'urgent' ? 'urgent' : ''}`}>
+          <span className={`kanban-due ${urgency === 'overdue' ? 'overdue' : ''}`}>
             📅 {formatDate(task.dueDate)}
             {urgency === 'overdue' && ' ⚠️'}
             {urgency === 'urgent' && ' 🔥'}
-            {urgency === 'today' && ' 📌'}
-            {urgency === 'upcoming' && ' ⏰'}
           </span>
         )}
         {totalSubs > 0 && (
           <span className={`kanban-subtask-badge ${completedSubs === totalSubs ? 'all-done' : ''}`}>
             ☑️ {completedSubs}/{totalSubs}
           </span>
+        )}
+        {durationStr && (
+          <span className="kanban-duration">⏱ {durationStr}</span>
         )}
       </div>
       <div className="kanban-card-actions">
@@ -101,7 +117,7 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
   );
 }
 
-function SwimlaneGroup({ label, tasks, onEdit, draggingId, setDraggingId }) {
+function SwimlaneGroup({ label, tasks, onEdit, draggingId, setDraggingId, showDuration }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -115,12 +131,11 @@ function SwimlaneGroup({ label, tasks, onEdit, draggingId, setDraggingId }) {
         <div className="swimlane-cards">
           {tasks.map((task) => (
             <TaskCard
-              key={task.id}
-              task={task}
-              onEdit={onEdit}
+              key={task.id} task={task} onEdit={onEdit}
               isDragging={draggingId === task.id}
               onDragStart={setDraggingId}
               onDragEnd={() => setDraggingId(null)}
+              showDuration={showDuration}
             />
           ))}
         </div>
@@ -129,31 +144,24 @@ function SwimlaneGroup({ label, tasks, onEdit, draggingId, setDraggingId }) {
   );
 }
 
-function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggingId, onDropTask, swimlaneBy }) {
+function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggingId, onDropTask, swimlaneBy, wipLimit }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [dropIndex, setDropIndex] = useState(-1);
 
   const sortedTasks = [...tasks].sort((a, b) => (a.order || 0) - (b.order || 0));
+  const overWip = wipLimit && tasks.length >= wipLimit;
 
-  // Group tasks for swimlanes
   const groups = useMemo(() => {
     if (swimlaneBy === 'none' || sortedTasks.length === 0) return null;
-
     const map = new Map();
     sortedTasks.forEach((task) => {
-      let key;
-      if (swimlaneBy === 'tag') {
-        // Group by first tag, '无标签' if none
-        key = task.tags.length > 0 ? task.tags[0] : '— 无标签 —';
-      } else if (swimlaneBy === 'priority') {
-        key = task.priority;
-      }
+      const key = swimlaneBy === 'tag'
+        ? (task.tags.length > 0 ? task.tags[0] : '— 无标签 —')
+        : task.priority;
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(task);
     });
-
-    // Sort groups: specific values first, then '— 无标签 —'
     const entries = [...map.entries()];
     entries.sort(([a], [b]) => {
       if (a === '— 无标签 —') return 1;
@@ -165,21 +173,15 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
 
   const handleDragOver = (e) => {
     e.preventDefault();
+    if (overWip) return; // WIP limit reached — reject drop
     e.dataTransfer.dropEffect = 'move';
     setIsDragOver(true);
-
-    if (!groups) {
-      setDropIndex(-1);
-      return;
-    }
-
-    // In swimlane mode, find which swimlane we're over
+    if (!groups) { setDropIndex(-1); return; }
     const cards = e.currentTarget.querySelectorAll('.kanban-card:not(.dragging)');
     let idx = sortedTasks.length;
     for (let i = 0; i < cards.length; i++) {
       const rect = cards[i].getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (e.clientY < midY) { idx = i; break; }
+      if (e.clientY < rect.top + rect.height / 2) { idx = i; break; }
     }
     setDropIndex(idx);
   };
@@ -193,16 +195,13 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
 
   const handleDrop = (e) => {
     e.preventDefault();
+    if (overWip) { setIsDragOver(false); return; }
     setIsDragOver(false);
     const taskId = e.dataTransfer.getData('taskId');
     const sourceStatus = e.dataTransfer.getData('sourceStatus');
-    const sourceOrder = parseInt(e.dataTransfer.getData('sourceOrder') || '0', 10);
-
     let newOrder;
-    if (sortedTasks.length === 0) {
-      newOrder = Date.now();
-    } else if (dropIndex === 0 || dropIndex === -1) {
-      newOrder = (sortedTasks[0].order || 0) - 1000;
+    if (sortedTasks.length === 0 || dropIndex === 0 || dropIndex === -1) {
+      newOrder = sortedTasks.length > 0 ? (sortedTasks[0].order || 0) - 1000 : Date.now();
     } else if (dropIndex >= sortedTasks.length) {
       newOrder = (sortedTasks[sortedTasks.length - 1].order || 0) + 1000;
     } else {
@@ -210,7 +209,6 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
       const after = sortedTasks[dropIndex].order || 0;
       newOrder = (before + after) / 2;
     }
-
     onDropTask(taskId, sourceStatus, column.id, newOrder);
     setDropIndex(-1);
     setDraggingId(null);
@@ -218,69 +216,66 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
 
   const handleAddTask = (e) => {
     e.preventDefault();
-    if (newTaskTitle.trim()) {
-      onAddTask(column.id, newTaskTitle.trim());
-      setNewTaskTitle('');
-    }
+    if (newTaskTitle.trim()) { onAddTask(column.id, newTaskTitle.trim()); setNewTaskTitle(''); }
   };
 
+  const showDuration = column.id === 'done' || column.id === 'in-progress';
+
   return (
-    <div className={`kanban-column ${isDragOver ? 'drag-over' : ''}`}>
-      <div className="kanban-column-header" style={{ borderColor: column.color }}>
-        <span className="kanban-column-title">{column.label}</span>
-        <span className="kanban-column-count" style={{ backgroundColor: column.color }}>
-          {tasks.length}
-        </span>
-      </div>
+    <div className={`kanban-column-wrapper ${isDragOver ? 'drag-over' : ''} ${overWip ? 'wip-exceeded' : ''}`}>
+      <div className="kanban-column" style={overWip ? { borderColor: '#ef4444' } : {}}>
+        <div className="kanban-column-header" style={{ borderColor: overWip ? '#ef4444' : column.color }}>
+          <span className="kanban-column-title">{column.label}</span>
+          <span className="kanban-column-count" style={{ backgroundColor: overWip ? '#ef4444' : column.color }}>
+            {tasks.length}{wipLimit ? `/${wipLimit}` : ''}
+          </span>
+        </div>
 
-      <div
-        className="kanban-column-content"
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        {groups ? (
-          // Swimlane mode
-          groups.map(([label, groupTasks]) => (
-            <SwimlaneGroup
-              key={label}
-              label={label}
-              tasks={groupTasks}
-              onEdit={onEdit}
-              draggingId={draggingId}
-              setDraggingId={setDraggingId}
-            />
-          ))
-        ) : (
-          // Flat mode
-          sortedTasks.map((task, i) => (
-            <div key={task.id}>
-              {dropIndex === i && <div className="kanban-drop-placeholder" />}
-              <TaskCard
-                task={task}
-                onEdit={onEdit}
-                isDragging={draggingId === task.id}
-                onDragStart={setDraggingId}
-                onDragEnd={() => { setDraggingId(null); setDropIndex(-1); }}
+        <div
+          className="kanban-column-content"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {overWip && (
+            <div className="kanban-wip-warning">⚠️ 已达 WIP 上限</div>
+          )}
+          {groups ? (
+            groups.map(([label, groupTasks]) => (
+              <SwimlaneGroup
+                key={label} label={label} tasks={groupTasks} onEdit={onEdit}
+                draggingId={draggingId} setDraggingId={setDraggingId}
+                showDuration={showDuration}
               />
-            </div>
-          ))
-        )}
-        {dropIndex === sortedTasks.length && <div className="kanban-drop-placeholder" />}
-        {sortedTasks.length === 0 && !draggingId && (
-          <div className="kanban-empty">暂无任务</div>
-        )}
-      </div>
+            ))
+          ) : (
+            sortedTasks.map((task, i) => (
+              <div key={task.id}>
+                {dropIndex === i && !overWip && <div className="kanban-drop-placeholder" />}
+                <TaskCard
+                  task={task} onEdit={onEdit}
+                  isDragging={draggingId === task.id}
+                  onDragStart={setDraggingId}
+                  onDragEnd={() => { setDraggingId(null); setDropIndex(-1); }}
+                  showDuration={showDuration}
+                />
+              </div>
+            ))
+          )}
+          {dropIndex === sortedTasks.length && !overWip && <div className="kanban-drop-placeholder" />}
+          {sortedTasks.length === 0 && !draggingId && !overWip && (
+            <div className="kanban-empty">暂无任务</div>
+          )}
+        </div>
 
-      <form className="kanban-add-task" onSubmit={handleAddTask}>
-        <input
-          type="text"
-          placeholder={`添加任务到 ${column.label}...`}
-          value={newTaskTitle}
-          onChange={(e) => setNewTaskTitle(e.target.value)}
-        />
-        <button type="submit">+</button>
-      </form>
+        <form className="kanban-add-task" onSubmit={handleAddTask}>
+          <input
+            type="text" placeholder={`添加任务到 ${column.label}...`}
+            value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)}
+          />
+          <button type="submit">+</button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -289,6 +284,11 @@ export default function KanbanBoard({ onEditTask }) {
   const { allTasks, createTask, updateTask, reorderTasks } = useTaskContext();
   const [draggingId, setDraggingId] = useState(null);
   const [swimlaneBy, setSwimlaneBy] = useState(() => localStorage.getItem('kanban-swimlane') || 'none');
+  const [wipLimits, setWipLimits] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('kanban-wip') || '{"todo":0,"in-progress":3,"done":0}'); }
+    catch { return { todo: 0, 'in-progress': 3, done: 0 }; }
+  });
+  const [showWipConfig, setShowWipConfig] = useState(false);
 
   const handleSwimlaneChange = (e) => {
     const val = e.target.value;
@@ -296,13 +296,28 @@ export default function KanbanBoard({ onEditTask }) {
     localStorage.setItem('kanban-swimlane', val);
   };
 
+  const handleWipChange = (colId, val) => {
+    const updated = { ...wipLimits, [colId]: Math.max(0, parseInt(val) || 0) };
+    setWipLimits(updated);
+    localStorage.setItem('kanban-wip', JSON.stringify(updated));
+  };
+
   const handleDropTask = useCallback((taskId, sourceStatus, targetStatus, newOrder) => {
+    const wip = wipLimits[targetStatus];
+    if (wip > 0) {
+      const currentCount = allTasks.filter((t) => t.status === targetStatus).length;
+      if (sourceStatus !== targetStatus && currentCount >= wip) return; // blocked by WIP
+    }
     if (sourceStatus === targetStatus) {
       reorderTasks(taskId, newOrder);
     } else {
-      updateTask(taskId, { status: targetStatus, order: newOrder });
+      // Auto-set timestamps on status transitions
+      const updates = { status: targetStatus, order: newOrder };
+      if (targetStatus === 'in-progress') updates.startTime = new Date().toISOString();
+      if (targetStatus === 'done') updates.endTime = new Date().toISOString();
+      updateTask(taskId, updates);
     }
-  }, [reorderTasks, updateTask]);
+  }, [reorderTasks, updateTask, allTasks, wipLimits]);
 
   const handleAddTask = useCallback((columnId, title) => {
     createTask({ title, status: columnId, tags: [], priority: 'P1' });
@@ -317,21 +332,28 @@ export default function KanbanBoard({ onEditTask }) {
           <option value="tag">按标签</option>
           <option value="priority">按优先级</option>
         </select>
+        <span style={{ marginLeft: 16 }}>WIP 上限：</span>
+        {COLUMNS.map((col) => (
+          <span key={col.id} className="wip-limit-input">
+            <label style={{ fontSize: 12 }}>{col.label}</label>
+            <input
+              type="number" min="0" max="99"
+              value={wipLimits[col.id] || 0}
+              onChange={(e) => handleWipChange(col.id, e.target.value)}
+              style={{ width: 40, padding: '2px 4px', fontSize: 12 }}
+            />
+          </span>
+        ))}
       </div>
       <div className="kanban-board">
         {COLUMNS.map((col) => {
           const tasks = allTasks.filter((t) => t.status === col.id);
           return (
             <KanbanColumn
-              key={col.id}
-              column={col}
-              tasks={tasks}
-              onEdit={onEditTask}
-              onAddTask={handleAddTask}
-              draggingId={draggingId}
-              setDraggingId={setDraggingId}
-              onDropTask={handleDropTask}
-              swimlaneBy={swimlaneBy}
+              key={col.id} column={col} tasks={tasks} onEdit={onEditTask}
+              onAddTask={handleAddTask} draggingId={draggingId}
+              setDraggingId={setDraggingId} onDropTask={handleDropTask}
+              swimlaneBy={swimlaneBy} wipLimit={wipLimits[col.id] || 0}
             />
           );
         })}

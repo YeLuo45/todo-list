@@ -320,3 +320,48 @@
   font-size: 13px;
   cursor: pointer;
 }
+
+.wip-limit-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.wip-limit-input input {
+  padding: 2px 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+  width: 40px;
+  text-align: center;
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.wip-limit-input label {
+  color: var(--text-secondary);
+}
+
+.kanban-wip-warning {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--color-danger);
+  text-align: center;
+  padding: 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.kanban-column-wrapper.wip-exceeded {
+  opacity: 0.9;
+}
+
+.kanban-duration {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-hover);
+  padding: 1px 5px;
+  border-radius: 3px;
+}

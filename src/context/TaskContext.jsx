@@ -214,11 +214,20 @@ export function TaskProvider({ children }) {
 
   const updateTask = useCallback((id, updates) => {
     setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id
-          ? { ...task, ...updates, updatedAt: new Date().toISOString() }
-          : task
-      )
+      prev.map((task) => {
+        if (task.id !== id) return task;
+        const next = { ...task, ...updates, updatedAt: new Date().toISOString() };
+        // Auto-timestamp on status transitions
+        if (updates.status && updates.status !== task.status) {
+          if (updates.status === 'in-progress' && !next.startTime) {
+            next.startTime = new Date().toISOString();
+          }
+          if (updates.status === 'done' && !next.endTime) {
+            next.endTime = new Date().toISOString();
+          }
+        }
+        return next;
+      })
     );
   }, []);
 

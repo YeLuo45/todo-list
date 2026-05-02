@@ -18,6 +18,8 @@ export default function TaskForm({ editingTask, onClose }) {
   const [subtaskInput, setSubtaskInput] = useState('');
   const [dependsOn, setDependsOn] = useState([]);
   const [depSearch, setDepSearch] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
 
   useEffect(() => {
     if (editingTask) {
@@ -33,6 +35,8 @@ export default function TaskForm({ editingTask, onClose }) {
       setRecurrenceEndDate(editingTask.recurrenceEndDate || '');
       setSubtasks(editingTask.subtasks || []);
       setDependsOn(editingTask.dependsOn || []);
+      setStartTime(editingTask.startTime ? editingTask.startTime.slice(0, 16) : '');
+      setEndTime(editingTask.endTime ? editingTask.endTime.slice(0, 16) : '');
     }
   }, [editingTask]);
 
@@ -70,11 +74,9 @@ export default function TaskForm({ editingTask, onClose }) {
     setDependsOn((prev) => prev.filter((id) => id !== depId));
   };
 
-  // Available tasks to depend on (exclude self and already depended)
   const availableDeps = allTasks.filter(
     (t) => t.id !== editingTask?.id && !dependsOn.includes(t.id)
   );
-
   const filteredDeps = depSearch
     ? availableDeps.filter((t) => t.title.toLowerCase().includes(depSearch.toLowerCase()))
     : availableDeps.slice(0, 5);
@@ -82,12 +84,7 @@ export default function TaskForm({ editingTask, onClose }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim()) return;
-
-    const tagList = tags
-      .split(',')
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
-
+    const tagList = tags.split(',').map((t) => t.trim()).filter((t) => t.length > 0);
     const taskData = {
       title: title.trim(),
       content: content.trim(),
@@ -101,14 +98,11 @@ export default function TaskForm({ editingTask, onClose }) {
       recurrenceEndDate: recurrenceEndDate || null,
       subtasks,
       dependsOn,
+      startTime: startTime ? new Date(startTime).toISOString() : null,
+      endTime: endTime ? new Date(endTime).toISOString() : null,
     };
-
-    if (editingTask) {
-      updateTask(editingTask.id, taskData);
-    } else {
-      createTask(taskData);
-    }
-
+    if (editingTask) updateTask(editingTask.id, taskData);
+    else createTask(taskData);
     onClose();
   };
 
@@ -121,24 +115,14 @@ export default function TaskForm({ editingTask, onClose }) {
 
         <div className="form-group">
           <label>标题 *</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="任务标题"
-            required
-            autoFocus
-          />
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+            placeholder="任务标题" required autoFocus />
         </div>
 
         <div className="form-group">
           <label>描述</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="任务描述（可选）"
-            rows={3}
-          />
+          <textarea value={content} onChange={(e) => setContent(e.target.value)}
+            placeholder="任务描述（可选）" rows={3} />
         </div>
 
         <div className="form-row">
@@ -150,7 +134,6 @@ export default function TaskForm({ editingTask, onClose }) {
               <option value="P2">P2</option>
             </select>
           </div>
-
           <div className="form-group">
             <label>状态</label>
             <select value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -164,13 +147,8 @@ export default function TaskForm({ editingTask, onClose }) {
         <div className="form-row">
           <div className="form-group">
             <label>截止日期</label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
+            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
-
           <div className="form-group">
             <label>提醒</label>
             <select value={remindBefore} onChange={(e) => { setRemindBefore(e.target.value); if (e.target.value) setRemindAt(''); }}>
@@ -179,27 +157,17 @@ export default function TaskForm({ editingTask, onClose }) {
               <option value="1d">提前 1 天</option>
             </select>
           </div>
-
           <div className="form-group">
             <label>精确提醒时间</label>
-            <input
-              type="datetime-local"
-              value={remindAt}
-              onChange={(e) => { setRemindAt(e.target.value); if (e.target.value) setRemindBefore(''); }}
-            />
+            <input type="datetime-local" value={remindAt}
+              onChange={(e) => { setRemindAt(e.target.value); if (e.target.value) setRemindBefore(''); }} />
           </div>
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label>标签</label>
-            <input
-              type="text"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="工作, 生活, 紧急 (逗号分隔)"
-            />
-          </div>
+        <div className="form-group">
+          <label>标签</label>
+          <input type="text" value={tags} onChange={(e) => setTags(e.target.value)}
+            placeholder="工作, 生活, 紧急 (逗号分隔)" />
         </div>
 
         <div className="form-row">
@@ -212,50 +180,48 @@ export default function TaskForm({ editingTask, onClose }) {
               <option value="monthly">每月</option>
             </select>
           </div>
-
           {recurrence && (
             <div className="form-group">
               <label>重复结束日期</label>
-              <input
-                type="date"
-                value={recurrenceEndDate}
-                onChange={(e) => setRecurrenceEndDate(e.target.value)}
-              />
+              <input type="date" value={recurrenceEndDate}
+                onChange={(e) => setRecurrenceEndDate(e.target.value)} />
             </div>
           )}
         </div>
 
-        {/* Subtasks */}
+        <div className="form-row">
+          <div className="form-group">
+            <label>开始时间</label>
+            <input type="datetime-local" value={startTime}
+              onChange={(e) => setStartTime(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>结束时间</label>
+            <input type="datetime-local" value={endTime}
+              onChange={(e) => setEndTime(e.target.value)} />
+          </div>
+        </div>
+
         <div className="form-group">
-          <label>
-            子任务 {subtasks.length > 0 && <span className="subtask-progress">({completedSubs}/{subtasks.length})</span>}
-          </label>
+          <label>子任务 {subtasks.length > 0 && <span className="subtask-progress">({completedSubs}/{subtasks.length})</span>}</label>
           <div className="subtask-list">
             {subtasks.map((st) => (
               <div key={st.id} className={`subtask-item ${st.done ? 'done' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={st.done}
-                  onChange={() => handleSubtaskToggle(st.id)}
-                />
+                <input type="checkbox" checked={st.done} onChange={() => handleSubtaskToggle(st.id)} />
                 <span className="subtask-title">{st.title}</span>
                 <button type="button" className="subtask-delete" onClick={() => handleSubtaskDelete(st.id)}>×</button>
               </div>
             ))}
           </div>
           <div className="subtask-add">
-            <input
-              type="text"
-              value={subtaskInput}
+            <input type="text" value={subtaskInput}
               onChange={(e) => setSubtaskInput(e.target.value)}
               placeholder="添加子任务..."
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleSubtaskAdd())}
-            />
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleSubtaskAdd())} />
             <button type="button" onClick={handleSubtaskAdd}>+</button>
           </div>
         </div>
 
-        {/* Dependencies */}
         <div className="form-group">
           <label>依赖任务 🔗</label>
           {dependsOn.length > 0 && (
@@ -273,21 +239,14 @@ export default function TaskForm({ editingTask, onClose }) {
               })}
             </div>
           )}
-          <input
-            type="text"
-            value={depSearch}
+          <input type="text" value={depSearch}
             onChange={(e) => setDepSearch(e.target.value)}
-            placeholder="搜索要依赖的任务..."
-          />
+            placeholder="搜索要依赖的任务..." />
           {filteredDeps.length > 0 && (
             <div className="dep-suggestions">
               {filteredDeps.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className="dep-suggestion"
-                  onClick={() => handleAddDependency(t.id)}
-                >
+                <button key={t.id} type="button" className="dep-suggestion"
+                  onClick={() => handleAddDependency(t.id)}>
                   {t.title} {t.status === 'done' ? '✅' : '⏳'}
                 </button>
               ))}
@@ -296,12 +255,8 @@ export default function TaskForm({ editingTask, onClose }) {
         </div>
 
         <div className="form-actions">
-          <button type="button" className="btn-cancel" onClick={onClose}>
-            取消
-          </button>
-          <button type="submit" className="btn-submit">
-            {editingTask ? '更新' : '创建'}
-          </button>
+          <button type="button" className="btn-cancel" onClick={onClose}>取消</button>
+          <button type="submit" className="btn-submit">{editingTask ? '更新' : '创建'}</button>
         </div>
       </form>
     </div>
