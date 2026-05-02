@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { getReminderUrgency } from '../utils/reminder';
+import { getAllProjects } from '../utils/projects';
 import './KanbanBoard.css';
 import KanbanSettingsModal from './KanbanSettingsModal';
 
@@ -123,15 +124,19 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging, showDurati
   );
 }
 
-function SwimlaneGroup({ label, tasks, onEdit, draggingId, setDraggingId, showDuration, swimlaneWipLimit }) {
+function SwimlaneGroup({ label, tasks, onEdit, draggingId, setDraggingId, showDuration, swimlaneWipLimit, project }) {
   const [collapsed, setCollapsed] = useState(false);
   const overWip = swimlaneWipLimit > 0 && tasks.length >= swimlaneWipLimit;
+  const displayLabel = project ? `${project.name}` : label;
+  const labelStyle = project ? { color: project.color || undefined } : {};
 
   return (
     <div className={`swimlane ${overWip ? 'swimlane-over-wip' : ''}`}>
       <div className="swimlane-header" onClick={() => setCollapsed((c) => !c)}>
         <span className={`swimlane-toggle ${collapsed ? 'collapsed' : ''}`}>▼</span>
-        <span className="swimlane-label">{label}</span>
+        <span className="swimlane-label" style={labelStyle}>
+          {project ? `● ` : ''}{displayLabel}
+        </span>
         <span className="swimlane-count" style={overWip ? { backgroundColor: '#ef4444' } : {}}>
           {tasks.length}{swimlaneWipLimit > 0 ? `/${swimlaneWipLimit}` : ''}
         </span>
@@ -166,11 +171,18 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
 
   const groups = useMemo(() => {
     if (swimlaneBy === 'none' || sortedTasks.length === 0) return null;
+    const projects = getAllProjects();
+    const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
     const map = new Map();
     sortedTasks.forEach((task) => {
-      const key = swimlaneBy === 'tag'
-        ? (task.tags.length > 0 ? task.tags[0] : '— 无标签 —')
-        : task.priority;
+      let key;
+      if (swimlaneBy === 'tag') {
+        key = task.tags.length > 0 ? task.tags[0] : '— 无标签 —';
+      } else if (swimlaneBy === 'project') {
+        key = task.projectId || '__no-project__';
+      } else {
+        key = task.priority;
+      }
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(task);
     });
@@ -178,11 +190,19 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
     entries.sort(([a], [b]) => {
       if (a === '— 无标签 —') return 1;
       if (b === '— 无标签 —') return -1;
+      if (swimlaneBy === 'project') {
+        if (a === '__no-project__') return 1;
+        if (b === '__no-project__') return -1;
+        const pa = projectMap[a];
+        const pb = projectMap[b];
+        return (pa?.name || '').localeCompare(pb?.name || '');
+      }
       return String(a).localeCompare(String(b));
     });
     return entries.map(([key, groupTasks]) => ({
       key, groupTasks,
       wipLimit: swimlaneWipLimits ? (swimlaneWipLimits[key] || 0) : 0,
+      project: swimlaneBy === 'project' ? (projectMap[key] || null) : null,
     }));
   }, [sortedTasks, swimlaneBy, swimlaneWipLimits]);
 
@@ -256,11 +276,12 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
             <div className="kanban-wip-warning">⚠️ 已达 WIP 上限</div>
           )}
           {groups ? (
-            groups.map(({ key, groupTasks, wipLimit }) => (
+            groups.map(({ key, groupTasks, wipLimit, project }) => (
               <SwimlaneGroup
                 key={key} label={key} tasks={groupTasks} onEdit={onEdit}
                 draggingId={draggingId} setDraggingId={setDraggingId}
                 showDuration={showDuration} swimlaneWipLimit={wipLimit}
+                project={project}
               />
             ))
           ) : (

@@ -332,36 +332,106 @@ function ResourceView({ tasks, days, dateOffset, todayOffset, DAY_WIDTH, ROW_HEI
     return style;
   };
 
+  // Calculate load: { [projectId]: { [dateStr]: task[] } }
+  const loadData = useMemo(() => {
+    const data = {};
+    allRows.forEach(({ project, tasks: rowTasks }) => {
+      const key = project?.id || '__none__';
+      data[key] = {};
+      days.forEach((day) => {
+        data[key][day.dateStr] = rowTasks.filter((t) => {
+          const start = t.startTime ? new Date(t.startTime) : null;
+          const end = t.dueDate ? new Date(t.dueDate) : null;
+          const d = new Date(day.dateStr);
+          if (!start && !end) return false;
+          if (start && d < start) return false;
+          if (end && d > end) return false;
+          return true;
+        });
+      });
+    });
+    // Max load across all projects and days
+    let max = 1;
+    Object.values(data).forEach((byDate) => {
+      Object.values(byDate).forEach((tasks) => { if (tasks.length > max) max = tasks.length; });
+    });
+    return { data, max };
+  }, [allRows, days]);
+
+  const [hoverInfo, setHoverInfo] = useState(null); // { projectKey, dateStr, x, y, tasks }
+
+  const handleLoadHover = (e, projectKey, dateStr) => {
+    const tasks = loadData.data[projectKey]?.[dateStr] || [];
+    const rect = e.currentTarget.getBoundingClientRect();
+    setHoverInfo({ projectKey, dateStr, x: rect.left + rect.width / 2, y: rect.top, tasks });
+  };
+
   return (
     <div className="gantt-body" style={{ width: days.length * DAY_WIDTH + 200 }}>
-      <div
-        className="gantt-today-line"
-        style={{ left: todayOffset * DAY_WIDTH }}
-      />
-      {allRows.map(({ project, tasks: rowTasks }) => (
-        <div key={project?.id || '__unassigned__'} className="gantt-group">
-          <div className="gantt-group-label" style={{ color: project?.color || 'var(--text-muted)' }}>
-            {project ? `📁 ${project.name}` : '📋 无项目'}
-          </div>
-          <div className="gantt-rows" style={{ width: days.length * DAY_WIDTH }}>
-            {rowTasks.map((task) => {
-              const style = getProjectBarStyle(task, project);
-              return (
-                <div key={task.id} className="gantt-row" style={{ height: ROW_HEIGHT }}>
-                  <div
-                    className="gantt-task-bar"
-                    style={{ left: style.left, width: style.width, backgroundColor: style.backgroundColor }}
-                    onClick={() => onEditTask(task)}
-                    title={`${task.title}\n开始: ${task.startTime ? new Date(task.startTime).toLocaleDateString() : '未设置'}\n截止: ${task.dueDate || '未设置'}`}
-                  >
-                    <span className="gantt-bar-label">{task.title}</span>
+      <div className="gantt-today-line" style={{ left: todayOffset * DAY_WIDTH }} />
+      {allRows.map(({ project, tasks: rowTasks }) => {
+        const projectKey = project?.id || '__none__';
+        return (
+          <div key={projectKey} className="gantt-group">
+            <div className="gantt-group-label" style={{ color: project?.color || 'var(--text-muted)' }}>
+              {project ? `📁 ${project.name}` : '📋 无项目'}
+            </div>
+            <div className="gantt-rows" style={{ width: days.length * DAY_WIDTH }}>
+              {rowTasks.map((task) => {
+                const style = getProjectBarStyle(task, project);
+                return (
+                  <div key={task.id} className="gantt-row" style={{ height: ROW_HEIGHT }}>
+                    <div
+                      className="gantt-task-bar"
+                      style={{ left: style.left, width: style.width, backgroundColor: style.backgroundColor }}
+                      onClick={() => onEditTask(task)}
+                      title={`${task.title}\n开始: ${task.startTime ? new Date(task.startTime).toLocaleDateString() : '未设置'}\n截止: ${task.dueDate || '未设置'}`}
+                    >
+                      <span className="gantt-bar-label">{task.title}</span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+              {/* Load chart row */}
+              <div className="gantt-load-row">
+                {days.map((day) => {
+                  const dayTasks = loadData.data[projectKey]?.[day.dateStr] || [];
+                  const barHeight = loadData.max > 1
+                    ? Math.max(3, (dayTasks.length / loadData.max) * (ROW_HEIGHT - 4))
+                    : 0;
+                  return (
+                    <div key={day.dateStr} className="gantt-load-cell">
+                      <div
+                        className="gantt-load-bar"
+                        style={{
+                          height: barHeight,
+                          backgroundColor: project?.color || '#48DBFB',
+                          opacity: dayTasks.length > 0 ? 0.5 + (dayTasks.length / loadData.max) * 0.5 : 0.1,
+                        }}
+                        onMouseEnter={(e) => handleLoadHover(e, projectKey, day.dateStr)}
+                        onMouseLeave={() => setHoverInfo(null)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
+        );
+      })}
+      {hoverInfo && hoverInfo.tasks.length > 0 && (
+        <div
+          className="gantt-load-tooltip"
+          style={{ left: hoverInfo.x, top: hoverInfo.y - 10 }}
+        >
+          <div className="load-tooltip-date">{hoverInfo.dateStr}</div>
+          <div className="load-tooltip-count">{hoverInfo.tasks.length} 个任务</div>
+          {hoverInfo.tasks.slice(0, 5).map((t) => (
+            <div key={t.id} className="load-tooltip-task">{t.title}</div>
+          ))}
+          {hoverInfo.tasks.length > 5 && <div className="load-tooltip-more">+{hoverInfo.tasks.length - 5} 更多</div>}
         </div>
-      ))}
+      )}
     </div>
   );
 }

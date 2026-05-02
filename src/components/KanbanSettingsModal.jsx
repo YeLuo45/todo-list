@@ -1,9 +1,6 @@
+import { useMemo } from 'react';
 import './KanbanSettingsModal.css';
-
-const SWIMLANE_KEYS = {
-  priority: { P0: 'P0 紧急', P1: 'P1 普通', P2: 'P2 低优先级' },
-  tag: {}, // dynamic
-};
+import { getAllProjects } from '../utils/projects';
 
 const COLUMNS = [
   { id: 'todo', label: '待办' },
@@ -15,7 +12,21 @@ export default function KanbanSettingsModal({
   swimlaneBy, wipLimits, swimlaneWipLimits,
   onClose, onSwimlaneChange, onWipChange, onSwimlaneWipChange,
 }) {
-  const activeKeys = Object.keys(swimlaneWipLimits).filter((k) => swimlaneWipLimits[k] > 0);
+  const projects = useMemo(() => getAllProjects(), []);
+
+  const swimlaneKeys = useMemo(() => {
+    if (swimlaneBy === 'priority') {
+      return [
+        { key: 'P0', label: '🔴 P0 紧急' },
+        { key: 'P1', label: '🟡 P1 普通' },
+        { key: 'P2', label: '⚪ P2 低优先级' },
+      ];
+    }
+    if (swimlaneBy === 'project') {
+      return projects.map((p) => ({ key: p.id, label: `● ${p.name}`, color: p.color }));
+    }
+    return [];
+  }, [swimlaneBy, projects]);
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -32,6 +43,7 @@ export default function KanbanSettingsModal({
             <option value="none">无（不分组）</option>
             <option value="priority">按优先级</option>
             <option value="tag">按标签</option>
+            <option value="project">按项目</option>
           </select>
         </section>
 
@@ -56,11 +68,11 @@ export default function KanbanSettingsModal({
           <h4>泳道独立 WIP 限制</h4>
           <p className="settings-hint">开启泳道分组后，可为每个泳道设置独立 WIP 限制（0=不限制）</p>
           <div className="settings-swimlane-wip">
-            {swimlaneBy !== 'none' && (
+            {swimlaneBy !== 'none' && swimlaneKeys.length > 0 && (
               <>
-                {['P0', 'P1', 'P2'].map((key) => (
+                {swimlaneKeys.map(({ key, label, color }) => (
                   <div key={key} className="settings-wip-row">
-                    <label>🔴 {key === 'P0' ? 'P0 紧急' : key === 'P1' ? 'P1 普通' : 'P2 低优先级'}</label>
+                    <label style={color ? { color } : {}}>{label}</label>
                     <input
                       type="number" min="0" max="99"
                       value={swimlaneWipLimits[key] || 0}
@@ -69,13 +81,13 @@ export default function KanbanSettingsModal({
                     />
                   </div>
                 ))}
-                {swimlaneBy === 'tag' && (
-                  <p className="settings-hint" style={{ fontSize: 11 }}>标签泳道 WIP 在任务导入后自动识别</p>
-                )}
               </>
             )}
             {swimlaneBy === 'none' && (
               <p className="settings-hint">请先选择泳道分组模式</p>
+            )}
+            {swimlaneBy === 'tag' && (
+              <p className="settings-hint" style={{ fontSize: 11 }}>标签泳道 WIP 在任务导入后自动识别</p>
             )}
           </div>
         </section>
