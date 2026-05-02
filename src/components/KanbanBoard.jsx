@@ -377,6 +377,7 @@ export default function KanbanBoard({ onEditTask }) {
           <option value="none">无</option>
           <option value="tag">按标签</option>
           <option value="priority">按优先级</option>
+          <option value="project">按项目</option>
         </select>
         <span style={{ marginLeft: 16 }}>WIP：</span>
         {COLUMNS.map((col) => (
