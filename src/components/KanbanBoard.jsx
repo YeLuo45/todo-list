@@ -12,8 +12,9 @@ const COLUMNS = [
 const priorityColors = { P0: '#ef4444', P1: '#f59e0b', P2: '#9ca3b8' };
 
 function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
-  const { deleteTask } = useTaskContext();
+  const { deleteTask, isTaskBlocked } = useTaskContext();
   const [isHovered, setIsHovered] = useState(false);
+  const blocked = isTaskBlocked(task.id);
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData('taskId', task.id);
@@ -38,6 +39,8 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
   };
 
   const urgency = getReminderUrgency(task);
+  const completedSubs = (task.subtasks || []).filter((s) => s.done).length;
+  const totalSubs = (task.subtasks || []).length;
 
   return (
     <div
@@ -49,9 +52,10 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
         urgency === 'urgent' ? 'urgent-card' : '',
         urgency === 'today' ? 'today-card' : '',
         urgency === 'upcoming' ? 'upcoming-card' : '',
+        blocked ? 'blocked' : '',
       ].filter(Boolean).join(' ')}
-      draggable
-      onDragStart={handleDragStart}
+      draggable={!blocked}
+      onDragStart={blocked ? undefined : handleDragStart}
       onDragEnd={handleDragEnd}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -60,7 +64,8 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
         <span className="kanban-priority" style={{ backgroundColor: priorityColors[task.priority] }}>
           {task.priority}
         </span>
-        {isHovered && (
+        {blocked && <span className="blocked-icon" title="等待依赖任务完成">🔒</span>}
+        {isHovered && !blocked && (
           <button className="kanban-btn-delete" onClick={handleDelete}>×</button>
         )}
       </div>
@@ -81,6 +86,11 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
             {urgency === 'urgent' && ' 🔥'}
             {urgency === 'today' && ' 📌'}
             {urgency === 'upcoming' && ' ⏰'}
+          </span>
+        )}
+        {totalSubs > 0 && (
+          <span className={`kanban-subtask-badge ${completedSubs === totalSubs ? 'all-done' : ''}`}>
+            ☑️ {completedSubs}/{totalSubs}
           </span>
         )}
       </div>

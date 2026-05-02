@@ -195,6 +195,8 @@ export function TaskProvider({ children }) {
       priority: taskData.priority || 'P1',
       status: taskData.status || 'todo',
       dueDate: taskData.dueDate || null,
+      subtasks: taskData.subtasks || [],
+      dependsOn: taskData.dependsOn || [],
       remindBefore: taskData.remindBefore || null,
       remindAt: taskData.remindAt || null,
       recurrence: taskData.recurrence || null,
@@ -287,6 +289,31 @@ export function TaskProvider({ children }) {
     return Array.from(tagSet).sort();
   }, [tasks]);
 
+  // Check if a task is blocked by incomplete dependencies
+  const isTaskBlocked = useCallback((taskId) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || !task.dependsOn || task.dependsOn.length === 0) return false;
+    return task.dependsOn.some((depId) => {
+      const dep = tasks.find((t) => t.id === depId);
+      return dep && dep.status !== 'done';
+    });
+  }, [tasks]);
+
+  // Detect circular dependency before adding
+  const wouldCreateCycle = useCallback((taskId, newDepId) => {
+    const visited = new Set();
+    const stack = [newDepId];
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (current === taskId) return true;
+      if (visited.has(current)) continue;
+      visited.add(current);
+      const t = tasks.find((task) => task.id === current);
+      if (t && t.dependsOn) stack.push(...t.dependsOn);
+    }
+    return false;
+  }, [tasks]);
+
   const filteredTasks = tasks
     .filter((task) => {
       // Hide completed filter
@@ -353,6 +380,8 @@ export function TaskProvider({ children }) {
         clearSelection,
         batchDeleteTasks,
         batchUpdateTasks,
+        isTaskBlocked,
+        wouldCreateCycle,
       }}
     >
       {children}

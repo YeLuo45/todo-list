@@ -9,11 +9,13 @@ const priorityColors = {
 };
 
 export default function TaskItem({ task, onEdit }) {
-  const { updateTask, deleteTask, toggleTaskSelection, selectedTaskIds } = useTaskContext();
+  const { updateTask, deleteTask, toggleTaskSelection, selectedTaskIds, isTaskBlocked } = useTaskContext();
 
   const isSelected = selectedTaskIds.has(task.id);
+  const blocked = isTaskBlocked(task.id);
 
   const handleStatusChange = (e) => {
+    if (blocked) return;
     updateTask(task.id, { status: e.target.value });
   };
 
@@ -28,6 +30,14 @@ export default function TaskItem({ task, onEdit }) {
     toggleTaskSelection(task.id);
   };
 
+  const handleSubtaskToggle = (e, subtaskId) => {
+    e.stopPropagation();
+    const subtasks = task.subtasks.map((st) =>
+      st.id === subtaskId ? { ...st, done: !st.done } : st
+    );
+    updateTask(task.id, { subtasks });
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
@@ -35,6 +45,8 @@ export default function TaskItem({ task, onEdit }) {
   };
 
   const urgency = getReminderUrgency(task);
+  const completedSubs = (task.subtasks || []).filter((s) => s.done).length;
+  const totalSubs = (task.subtasks || []).length;
 
   const cardClass = [
     'task-item',
@@ -44,6 +56,7 @@ export default function TaskItem({ task, onEdit }) {
     urgency === 'today' ? 'today-card' : '',
     urgency === 'upcoming' ? 'upcoming-card' : '',
     isSelected ? 'selected' : '',
+    blocked ? 'blocked' : '',
   ].filter(Boolean).join(' ');
 
   return (
@@ -60,14 +73,16 @@ export default function TaskItem({ task, onEdit }) {
           className="task-status"
           value={task.status}
           onChange={handleStatusChange}
+          disabled={blocked}
         >
           <option value="todo">待办</option>
           <option value="in-progress">进行中</option>
           <option value="done">已完成</option>
         </select>
+        {blocked && <span className="blocked-badge" title="等待依赖任务完成">🔒</span>}
       </div>
 
-      <div className="task-content" onClick={() => onEdit(task)}>
+      <div className="task-content" onClick={() => !blocked && onEdit(task)}>
         <div className="task-header">
           <span className={`task-title ${urgency === 'overdue' ? 'overdue-title' : ''}`}>
             {task.title}
@@ -99,7 +114,29 @@ export default function TaskItem({ task, onEdit }) {
               {urgency === 'upcoming' && ' ⏰'}
             </span>
           )}
+          {totalSubs > 0 && (
+            <span className={`subtask-badge ${completedSubs === totalSubs ? 'all-done' : ''}`}>
+              ☑️ {completedSubs}/{totalSubs}
+            </span>
+          )}
         </div>
+
+        {/* Inline subtask toggles */}
+        {totalSubs > 0 && (
+          <div className="task-subtasks-inline">
+            {task.subtasks.map((st) => (
+              <label key={st.id} className={`subtask-inline-item ${st.done ? 'done' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={st.done}
+                  onChange={(e) => handleSubtaskToggle(e, st.id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span>{st.title}</span>
+              </label>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="task-actions">
