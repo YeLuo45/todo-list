@@ -16,6 +16,7 @@ import { useSync } from './hooks/useSync';
 import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
+import { getGistConfig, getLastBackupTime, setLastBackupTime, createBackupGist } from './utils/gistSync';
 import './App.css';
 
 function AppContent() {
@@ -48,6 +49,18 @@ function AppContent() {
       markAsRead(task.id);
       addToast(`Task "${task.title}" is due!`);
     });
+
+    // 自动备份检查
+    if (localStorage.getItem('auto-backup') === 'true') {
+      const config = getGistConfig();
+      const interval = parseInt(localStorage.getItem('backup-interval') || '1');
+      const lastBackup = getLastBackupTime();
+      if (config?.pat && (!lastBackup || Date.now() - new Date(lastBackup).getTime() > interval * 24 * 60 * 60 * 1000)) {
+        createBackupGist(config.pat, allTasks)
+          .then(() => { setLastBackupTime(new Date().toISOString()); })
+          .catch(() => {});
+      }
+    }
   }, []);
 
   // Listen for cross-component view switch events (e.g. from Dashboard quick actions)
@@ -232,6 +245,7 @@ function AppContent() {
 
       {showGistSync && (
         <GistSyncModal
+          tasks={allTasks}
           onClose={() => setShowGistSync(false)}
         />
       )}
