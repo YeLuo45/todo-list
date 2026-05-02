@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { getReminderUrgency } from '../utils/reminder';
+import { getAllProjects } from '../utils/projects';
 import './GanttChart.css';
 
 const DAY_WIDTH = 40; // px per day
@@ -45,10 +46,10 @@ function nextInstance(interval, from) {
 export default function GanttChart({ onEditTask }) {
   const { allTasks, updateTask, createTask } = useTaskContext();
   const containerRef = useRef(null);
-  const [viewMode, setViewMode] = useState('month'); // 'month' | 'week'
+  const [viewMode, setViewMode] = useState('month'); // 'month' | 'week' | 'resource'
   const [dragState, setDragState] = useState(null); // { taskId, edge: 'left'|'right', startX, originStart, originEnd }
   const [groupBy, setGroupBy] = useState('status'); // 'status' | 'priority'
-  const DAY_WIDTH = viewMode === 'week' ? 80 : 40; // px per day
+  const DAY_WIDTH = viewMode === 'week' ? 80 : viewMode === 'resource' ? 60 : 40; // px per day
   const ROW_HEIGHT = 44;
   const HEADER_HEIGHT = 60;
 
@@ -64,6 +65,9 @@ export default function GanttChart({ onEditTask }) {
     if (viewMode === 'week') {
       start = new Date(today); start.setDate(today.getDate() - 3);
       end = new Date(today); end.setDate(today.getDate() + 3);
+    } else if (viewMode === 'resource') {
+      start = new Date(today); start.setDate(today.getDate() - 7);
+      end = new Date(today); end.setDate(today.getDate() + 30);
     } else {
       start = new Date(today); start.setDate(today.getDate() - 3);
       end = new Date(today); end.setDate(today.getDate() + 30);
@@ -189,6 +193,10 @@ export default function GanttChart({ onEditTask }) {
             className={`gantt-group-btn ${viewMode === 'week' ? 'active' : ''}`}
             onClick={() => setViewMode('week')}
           >周视图</button>
+          <button
+            className={`gantt-group-btn ${viewMode === 'resource' ? 'active' : ''}`}
+            onClick={() => setViewMode('resource')}
+          >📊 资源</button>
           <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>
             泳道分组：
           </span>
@@ -220,6 +228,22 @@ export default function GanttChart({ onEditTask }) {
         </div>
 
         {/* Task rows */}
+        {/* Resource View: projects as rows */}
+        {viewMode === 'resource' && (
+          <ResourceView
+            tasks={tasks}
+            days={days}
+            dateOffset={dateOffset}
+            todayOffset={todayOffset}
+            DAY_WIDTH={DAY_WIDTH}
+            ROW_HEIGHT={ROW_HEIGHT}
+            onEditTask={onEditTask}
+            getBarStyle={getBarStyle}
+          />
+        )}
+
+        {/* Standard View: tasks grouped */}
+        {viewMode !== 'resource' && (
         <div
           className="gantt-body"
           style={{ width: totalWidth + 200 }}
@@ -270,7 +294,74 @@ export default function GanttChart({ onEditTask }) {
             <div className="gantt-empty">暂无有时间跨度的任务<br />给任务设置开始时间或截止日期即可显示在甘特图中</div>
           )}
         </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function ResourceView({ tasks, days, dateOffset, todayOffset, DAY_WIDTH, ROW_HEIGHT, onEditTask, getBarStyle }) {
+  const projects = useMemo(() => getAllProjects(), []);
+  const noProjectTasks = useMemo(
+    () => tasks.filter((t) => !t.projectId),
+    [tasks]
+  );
+
+  // Build project rows: { project, tasks }
+  const projectRows = useMemo(() => {
+    return projects.map((proj) => ({
+      project: proj,
+      tasks: tasks.filter((t) => t.projectId === proj.id),
+    })).filter((r) => r.tasks.length > 0);
+  }, [projects, tasks]);
+
+  const allRows = [
+    ...projectRows,
+    ...(noProjectTasks.length > 0 ? [{ project: null, tasks: noProjectTasks }] : []),
+  ];
+
+  if (allRows.length === 0) {
+    return (
+      <div className="gantt-empty">暂无有项目的任务<br />创建项目并分配任务后，资源视图将显示项目时间线</div>
+    );
+  }
+
+  const getProjectBarStyle = (task, project) => {
+    const style = getBarStyle(task);
+    style.backgroundColor = project?.color || style.backgroundColor;
+    return style;
+  };
+
+  return (
+    <div className="gantt-body" style={{ width: days.length * DAY_WIDTH + 200 }}>
+      <div
+        className="gantt-today-line"
+        style={{ left: todayOffset * DAY_WIDTH }}
+      />
+      {allRows.map(({ project, tasks: rowTasks }) => (
+        <div key={project?.id || '__unassigned__'} className="gantt-group">
+          <div className="gantt-group-label" style={{ color: project?.color || 'var(--text-muted)' }}>
+            {project ? `📁 ${project.name}` : '📋 无项目'}
+          </div>
+          <div className="gantt-rows" style={{ width: days.length * DAY_WIDTH }}>
+            {rowTasks.map((task) => {
+              const style = getProjectBarStyle(task, project);
+              return (
+                <div key={task.id} className="gantt-row" style={{ height: ROW_HEIGHT }}>
+                  <div
+                    className="gantt-task-bar"
+                    style={{ left: style.left, width: style.width, backgroundColor: style.backgroundColor }}
+                    onClick={() => onEditTask(task)}
+                    title={`${task.title}\n开始: ${task.startTime ? new Date(task.startTime).toLocaleDateString() : '未设置'}\n截止: ${task.dueDate || '未设置'}`}
+                  >
+                    <span className="gantt-bar-label">{task.title}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

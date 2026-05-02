@@ -1,4 +1,5 @@
 const PROJECTS_KEY = 'hermes-projects-v1';
+const TAG_GROUPS_KEY = 'hermes-tag-groups-v1';
 
 export const TAG_COLORS = [
   { value: '#FF6B6B', label: '红' },
@@ -19,6 +20,44 @@ export function getTagColors() {
 
 export function saveTagColors(colors) {
   localStorage.setItem('hermes-tag-colors-v1', JSON.stringify(colors));
+}
+
+// Tag Groups
+export function getTagGroups() {
+  try {
+    return JSON.parse(localStorage.getItem(TAG_GROUPS_KEY) || '[]');
+  } catch { return []; }
+}
+
+export function saveTagGroups(groups) {
+  localStorage.setItem(TAG_GROUPS_KEY, JSON.stringify(groups));
+}
+
+export function createTagGroup(name, color = '#48DBFB', tags = []) {
+  const groups = getTagGroups();
+  const g = {
+    id: `taggrp-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+    name,
+    color,
+    tags, // array of tag strings
+    createdAt: new Date().toISOString(),
+  };
+  groups.push(g);
+  saveTagGroups(groups);
+  return g;
+}
+
+export function updateTagGroup(id, updates) {
+  const groups = getTagGroups();
+  const idx = groups.findIndex((g) => g.id === id);
+  if (idx < 0) return;
+  groups[idx] = { ...groups[idx], ...updates };
+  saveTagGroups(groups);
+  return groups[idx];
+}
+
+export function deleteTagGroup(id) {
+  saveTagGroups(getTagGroups().filter((g) => g.id !== id));
 }
 
 export function getAllProjects() {
