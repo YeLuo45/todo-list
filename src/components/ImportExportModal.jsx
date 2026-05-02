@@ -3,12 +3,15 @@ import { useImportExport } from '../hooks/useImportExport';
 import './ImportExportModal.css';
 
 export default function ImportExportModal({ tasks, onImport, onClose }) {
-  const [mode, setMode] = useState('menu'); // menu | preview | importing
+  const [mode, setMode] = useState('menu'); // menu | preview | importing | notion
   const [parsedTasks, setParsedTasks] = useState([]);
   const [fileType, setFileType] = useState('');
   const [error, setError] = useState('');
+  const [notionDbId, setNotionDbId] = useState('');
+  const [notionToken, setNotionToken] = useState('');
+  const [notionLoading, setNotionLoading] = useState(false);
   const fileInputRef = useRef();
-  const { exportJSON, exportCSV, exportICal, exportEPUB, parseFile } = useImportExport(tasks);
+  const { exportJSON, exportCSV, exportICal, exportEPUB, parseFile, importFromNotion } = useImportExport(tasks);
 
   const handleExportJSON = () => {
     exportJSON();
@@ -56,6 +59,25 @@ export default function ImportExportModal({ tasks, onImport, onClose }) {
     onClose();
   };
 
+  const handleNotionImport = async () => {
+    if (!notionDbId.trim() || !notionToken.trim()) {
+      setError('请填写 Notion Database ID 和 API Token');
+      return;
+    }
+    setNotionLoading(true);
+    setError('');
+    try {
+      const notionTasks = await importFromNotion(notionDbId.trim(), notionToken.trim());
+      setParsedTasks(notionTasks);
+      setFileType('notion');
+      setMode('preview');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setNotionLoading(false);
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content import-export-modal">
@@ -90,6 +112,37 @@ export default function ImportExportModal({ tasks, onImport, onClose }) {
                 📂 选择文件
               </button>
               {error && <p className="ie-error">{error}</p>}
+            </div>
+
+            <div className="ie-divider" />
+
+            <div className="ie-section">
+              <h4>Notion 导入</h4>
+              <p className="ie-desc">从 Notion Database 导入任务（需要 Notion API Integration Token）</p>
+              <div className="notion-fields">
+                <div className="notion-field">
+                  <label>Database ID</label>
+                  <input
+                    type="text"
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    value={notionDbId}
+                    onChange={(e) => setNotionDbId(e.target.value)}
+                  />
+                </div>
+                <div className="notion-field">
+                  <label>Integration Token</label>
+                  <input
+                    type="password"
+                    placeholder="secret_xxxxxxxxxxxx"
+                    value={notionToken}
+                    onChange={(e) => setNotionToken(e.target.value)}
+                  />
+                </div>
+                {error && <p className="ie-error">{error}</p>}
+                <button className="ie-btn primary" onClick={handleNotionImport} disabled={notionLoading}>
+                  {notionLoading ? '导入中...' : '🔗 从 Notion 导入'}
+                </button>
+              </div>
             </div>
 
             <div className="ie-divider" />

@@ -144,3 +144,30 @@
   margin-top: 16px;
   flex-wrap: wrap;
 }
+
+.notion-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notion-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.notion-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.notion-field input {
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+}

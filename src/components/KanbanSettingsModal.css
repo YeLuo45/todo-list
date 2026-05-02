@@ -1,0 +1,86 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.settings-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  width: 460px;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.settings-modal h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.settings-modal h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 4px;
+}
+
+.settings-section {
+  margin-bottom: 20px;
+}
+
+.settings-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 4px 0 8px;
+}
+
+.settings-wip-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-wip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--bg-hover);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.settings-swimlane-wip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-close-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.settings-close-btn:hover {
+  background: var(--bg-hover);
+}

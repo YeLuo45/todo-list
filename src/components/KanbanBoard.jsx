@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { getReminderUrgency } from '../utils/reminder';
 import './KanbanBoard.css';
+import KanbanSettingsModal from './KanbanSettingsModal';
 
 const COLUMNS = [
   { id: 'todo', label: '待办', color: '#06b6d4' },
@@ -81,10 +82,15 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging, showDurati
         <span className="kanban-priority" style={{ backgroundColor: priorityColors[task.priority] }}>
           {task.priority}
         </span>
-        {blocked && <span className="blocked-icon" title="等待依赖">🔒</span>}
-        {isHovered && !blocked && (
-          <button className="kanban-btn-delete" onClick={handleDelete}>×</button>
-        )}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {urgency === 'overdue' && (
+            <span className="overdue-badge" title="已逾期">🔴 逾期</span>
+          )}
+          {blocked && <span className="blocked-icon" title="等待依赖">🔒</span>}
+          {isHovered && !blocked && (
+            <button className="kanban-btn-delete" onClick={handleDelete}>×</button>
+          )}
+        </div>
       </div>
       <div className="kanban-card-title">{task.title}</div>
       {task.content && <div className="kanban-card-desc">{task.content}</div>}
@@ -117,16 +123,22 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging, showDurati
   );
 }
 
-function SwimlaneGroup({ label, tasks, onEdit, draggingId, setDraggingId, showDuration }) {
+function SwimlaneGroup({ label, tasks, onEdit, draggingId, setDraggingId, showDuration, swimlaneWipLimit }) {
   const [collapsed, setCollapsed] = useState(false);
+  const overWip = swimlaneWipLimit > 0 && tasks.length >= swimlaneWipLimit;
 
   return (
-    <div className="swimlane">
+    <div className={`swimlane ${overWip ? 'swimlane-over-wip' : ''}`}>
       <div className="swimlane-header" onClick={() => setCollapsed((c) => !c)}>
         <span className={`swimlane-toggle ${collapsed ? 'collapsed' : ''}`}>▼</span>
         <span className="swimlane-label">{label}</span>
-        <span className="swimlane-count">{tasks.length}</span>
+        <span className="swimlane-count" style={overWip ? { backgroundColor: '#ef4444' } : {}}>
+          {tasks.length}{swimlaneWipLimit > 0 ? `/${swimlaneWipLimit}` : ''}
+        </span>
       </div>
+      {overWip && !collapsed && (
+        <div className="swimlane-wip-warning">⚠️ 泳道已达 WIP 上限</div>
+      )}
       {!collapsed && (
         <div className="swimlane-cards">
           {tasks.map((task) => (
@@ -144,7 +156,7 @@ function SwimlaneGroup({ label, tasks, onEdit, draggingId, setDraggingId, showDu
   );
 }
 
-function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggingId, onDropTask, swimlaneBy, wipLimit }) {
+function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggingId, onDropTask, swimlaneBy, wipLimit, swimlaneWipLimits }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [dropIndex, setDropIndex] = useState(-1);
@@ -168,8 +180,11 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
       if (b === '— 无标签 —') return -1;
       return String(a).localeCompare(String(b));
     });
-    return entries;
-  }, [sortedTasks, swimlaneBy]);
+    return entries.map(([key, groupTasks]) => ({
+      key, groupTasks,
+      wipLimit: swimlaneWipLimits ? (swimlaneWipLimits[key] || 0) : 0,
+    }));
+  }, [sortedTasks, swimlaneBy, swimlaneWipLimits]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -241,11 +256,11 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
             <div className="kanban-wip-warning">⚠️ 已达 WIP 上限</div>
           )}
           {groups ? (
-            groups.map(([label, groupTasks]) => (
+            groups.map(({ key, groupTasks, wipLimit }) => (
               <SwimlaneGroup
-                key={label} label={label} tasks={groupTasks} onEdit={onEdit}
+                key={key} label={key} tasks={groupTasks} onEdit={onEdit}
                 draggingId={draggingId} setDraggingId={setDraggingId}
-                showDuration={showDuration}
+                showDuration={showDuration} swimlaneWipLimit={wipLimit}
               />
             ))
           ) : (
@@ -288,7 +303,11 @@ export default function KanbanBoard({ onEditTask }) {
     try { return JSON.parse(localStorage.getItem('kanban-wip') || '{"todo":0,"in-progress":3,"done":0}'); }
     catch { return { todo: 0, 'in-progress': 3, done: 0 }; }
   });
-  const [showWipConfig, setShowWipConfig] = useState(false);
+  const [swimlaneWipLimits, setSwimlaneWipLimits] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('kanban-swimlane-wip') || '{}'); }
+    catch { return {}; }
+  });
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleSwimlaneChange = (e) => {
     const val = e.target.value;
@@ -300,6 +319,12 @@ export default function KanbanBoard({ onEditTask }) {
     const updated = { ...wipLimits, [colId]: Math.max(0, parseInt(val) || 0) };
     setWipLimits(updated);
     localStorage.setItem('kanban-wip', JSON.stringify(updated));
+  };
+
+  const handleSwimlaneWipChange = (key, val) => {
+    const updated = { ...swimlaneWipLimits, [key]: Math.max(0, parseInt(val) || 0) };
+    setSwimlaneWipLimits(updated);
+    localStorage.setItem('kanban-swimlane-wip', JSON.stringify(updated));
   };
 
   const handleDropTask = useCallback((taskId, sourceStatus, targetStatus, newOrder) => {
@@ -332,7 +357,7 @@ export default function KanbanBoard({ onEditTask }) {
           <option value="tag">按标签</option>
           <option value="priority">按优先级</option>
         </select>
-        <span style={{ marginLeft: 16 }}>WIP 上限：</span>
+        <span style={{ marginLeft: 16 }}>WIP：</span>
         {COLUMNS.map((col) => (
           <span key={col.id} className="wip-limit-input">
             <label style={{ fontSize: 12 }}>{col.label}</label>
@@ -344,7 +369,21 @@ export default function KanbanBoard({ onEditTask }) {
             />
           </span>
         ))}
+        <button className="kanban-settings-btn" onClick={() => setShowSettings(true)}>
+          ⚙️ 看板设置
+        </button>
       </div>
+      {showSettings && (
+        <KanbanSettingsModal
+          swimlaneBy={swimlaneBy}
+          wipLimits={wipLimits}
+          swimlaneWipLimits={swimlaneWipLimits}
+          onClose={() => setShowSettings(false)}
+          onSwimlaneChange={handleSwimlaneChange}
+          onWipChange={handleWipChange}
+          onSwimlaneWipChange={handleSwimlaneWipChange}
+        />
+      )}
       <div className="kanban-board">
         {COLUMNS.map((col) => {
           const tasks = allTasks.filter((t) => t.status === col.id);
@@ -354,6 +393,7 @@ export default function KanbanBoard({ onEditTask }) {
               onAddTask={handleAddTask} draggingId={draggingId}
               setDraggingId={setDraggingId} onDropTask={handleDropTask}
               swimlaneBy={swimlaneBy} wipLimit={wipLimits[col.id] || 0}
+              swimlaneWipLimits={swimlaneWipLimits}
             />
           );
         })}

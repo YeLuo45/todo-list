@@ -365,3 +365,54 @@
   padding: 1px 5px;
   border-radius: 3px;
 }
+
+.overdue-badge {
+  font-size: 10px;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-danger);
+  padding: 1px 5px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.swimlane-over-wip {
+  background: rgba(239, 68, 68, 0.04);
+  border-radius: 6px;
+}
+
+.swimlane-wip-warning {
+  font-size: 11px;
+  color: var(--color-danger);
+  padding: 4px 8px;
+  background: rgba(239, 68, 68, 0.08);
+  margin: 2px 4px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.kanban-settings-btn {
+  margin-left: 8px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.kanban-settings-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.kanban-swimlane-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  font-size: 13px;
+}
