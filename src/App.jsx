@@ -12,6 +12,7 @@ import StatsDashboard from './components/StatsDashboard';
 import GanttChart from './components/GanttChart';
 import Dashboard from './components/Dashboard';
 import GistSyncModal from './components/GistSyncModal';
+import ProjectSidebar from './components/ProjectSidebar';
 import { useSync } from './hooks/useSync';
 import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -206,7 +207,10 @@ function AppContent() {
           />
         )}
         {view === 'list' ? (
-          <TaskList onEdit={handleEditTask} onNew={handleNewTask} />
+          <>
+            <ProjectSidebar />
+            <TaskList onEdit={handleEditTask} onNew={handleNewTask} />
+          </>
         ) : view === 'kanban' ? (
           <KanbanBoard onEditTask={handleEditTask} />
         ) : view === 'gantt' ? (

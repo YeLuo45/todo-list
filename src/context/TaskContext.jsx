@@ -134,6 +134,7 @@ const saveTasks = async (tasks) => {
 export function TaskProvider({ children }) {
   const [tasks, setTasks] = useState([]);
   const [filterTags, setFilterTags] = useState([]); // multi-select tags
+  const [filterProject, setFilterProject] = useState(null); // project ID filter
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [isLoading, setIsLoading] = useState(true);
@@ -235,6 +236,7 @@ export function TaskProvider({ children }) {
       urgency: taskData.urgency ?? 3,
       startTime: taskData.startTime || null,
       endTime: taskData.endTime || null,
+      projectId: taskData.projectId || null,
     };
     setTasks((prev) => [newTask, ...prev]);
     return newTask;
@@ -392,6 +394,8 @@ export function TaskProvider({ children }) {
       }
       // Multi-select tag filter: show task if it has ANY of the selected tags
       if (filterTags.length > 0 && !task.tags.some(tag => filterTags.includes(tag))) return false;
+      // Project filter
+      if (filterProject && task.projectId !== filterProject) return false;
       // Search filter: fuzzy search in title + content + tags
       if (searchQuery) {
         const matched = fuzzySearch([task], searchQuery);
@@ -427,6 +431,8 @@ export function TaskProvider({ children }) {
         setTasks,
         filterTags,
         setFilterTags,
+        filterProject,
+        setFilterProject,
         searchQuery,
         setSearchQuery,
         sortBy,
