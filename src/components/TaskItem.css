@@ -1,19 +1,20 @@
 .task-item {
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   transition: box-shadow 0.2s;
+  border: 1px solid var(--border-card);
 }
 
 .task-item:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .task-item.done {
   opacity: 0.7;
-  background: #f5f5f5;
+  background: var(--bg-hover);
 }
 
 .task-main {
@@ -24,16 +25,18 @@
 
 .task-status {
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  background: #fafafa;
+  background: var(--bg-input);
   cursor: pointer;
   font-size: 12px;
   min-width: 100px;
+  color: var(--text-primary);
 }
 
 .task-content {
   flex: 1;
+  cursor: pointer;
 }
 
 .task-header {
@@ -46,16 +49,16 @@
 .task-title {
   font-weight: 600;
   font-size: 16px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .task-item.done .task-title {
   text-decoration: line-through;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .task-title.overdue-title {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .task-priority {
@@ -69,7 +72,7 @@
 
 .task-description {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 8px 0;
   line-height: 1.4;
 }
@@ -89,8 +92,8 @@
 }
 
 .task-tag {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--bg-hover);
+  color: var(--text-link);
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
@@ -98,11 +101,11 @@
 
 .task-due {
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .task-due.overdue {
-  color: #e53935;
+  color: var(--color-danger);
   font-weight: 600;
 }
 
@@ -122,42 +125,58 @@
 }
 
 .btn-edit {
-  background: #2196f3;
+  background: var(--color-primary);
   color: white;
 }
 
 .btn-edit:hover {
-  background: #1976d2;
+  filter: brightness(1.1);
 }
 
 .btn-delete {
-  background: #ef5350;
+  background: var(--color-danger);
   color: white;
 }
 
 .btn-delete:hover {
-  background: #e53935;
+  filter: brightness(1.1);
 }
 
 /* Urgency states */
 .overdue-card {
-  border-left: 4px solid #ef4444;
-  background: #fef2f2;
+  border-left: 4px solid var(--color-danger);
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] .overdue-card {
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .urgent-card {
   border-left: 4px solid #f97316;
-  background: #fff7ed;
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] .urgent-card {
+  background: rgba(249, 115, 22, 0.1);
 }
 
 .today-card {
-  border-left: 4px solid #3b82f6;
-  background: #eff6ff;
+  border-left: 4px solid var(--color-primary);
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] .today-card {
+  background: rgba(59, 130, 246, 0.1);
 }
 
 .upcoming-card {
-  border-left: 4px solid #eab308;
-  background: #fefce8;
+  border-left: 4px solid var(--color-warning);
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] .upcoming-card {
+  background: rgba(234, 179, 8, 0.1);
 }
 
 .task-due.urgent {
@@ -166,8 +185,8 @@
 }
 
 .task-item.selected {
-  background: #dbeafe;
-  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--color-primary);
 }
 
 .task-checkbox {
@@ -175,4 +194,5 @@
   height: 16px;
   cursor: pointer;
   flex-shrink: 0;
+  accent-color: var(--color-primary);
 }

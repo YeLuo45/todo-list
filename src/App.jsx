@@ -10,6 +10,7 @@ import SettingsModal from './components/SettingsModal';
 import ImportExportModal from './components/ImportExportModal';
 import StatsDashboard from './components/StatsDashboard';
 import { useSync } from './hooks/useSync';
+import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
 import './App.css';
@@ -24,6 +25,8 @@ function AppContent() {
   const [showImportExport, setShowImportExport] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const filterBarRef = useRef();
+
+  const { theme, toggleTheme } = useTheme();
 
   const {
     status,
@@ -104,6 +107,9 @@ function AppContent() {
             <p className="subtitle">Manage your tasks efficiently</p>
           </div>
           <div className="header-actions">
+            <button className="theme-toggle" onClick={toggleTheme} title="切换主题">
+              {theme === 'dark' ? '☀️ 亮色' : '🌙 暗色'}
+            </button>
             <SyncStatus
               status={status}
               lastSynced={lastSynced}

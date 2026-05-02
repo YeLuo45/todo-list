@@ -135,6 +135,52 @@ export function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+// 生成 iCal 格式
+export function generateICal(tasks) {
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Hermes TodoList//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+  ];
+
+  for (const task of tasks) {
+    if (!task.dueDate) continue; // iCal events need a date
+
+    const uid = task.id.includes('@') ? task.id : `${task.id}@hermes-todolist`;
+    const dtstart = task.dueDate.replace(/-/g, '');
+    const summary = escapeICal(task.title);
+    const description = escapeICal(task.content || '');
+    const categories = (task.tags || []).map(escapeICal).join(',');
+
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:${uid}`);
+    lines.push(`DTSTAMP:${formatICalDate(new Date())}`);
+    lines.push(`DTSTART;VALUE=DATE:${dtstart}`);
+    lines.push(`SUMMARY:${summary}`);
+    if (description) lines.push(`DESCRIPTION:${description}`);
+    if (categories) lines.push(`CATEGORIES:${categories}`);
+    if (task.priority) {
+      const MAP = { P0: '1', P1: '5', P2: '9' };
+      lines.push(`PRIORITY:${MAP[task.priority] || '5'}`);
+    }
+    lines.push('END:VEVENT');
+  }
+
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+function escapeICal(str) {
+  if (!str) return '';
+  return str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+}
+
+function formatICalDate(date) {
+  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+}
+
 // 生成 EPUB 文件
 export function generateEPUB(tasks) {
   const date = new Date().toISOString().split('T')[0];

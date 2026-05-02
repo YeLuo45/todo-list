@@ -13,7 +13,7 @@
 
 .task-list-header h2 {
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
   font-size: 20px;
 }
 
@@ -25,34 +25,34 @@
 }
 
 .batch-btn {
-  background: #3b82f6;
+  background: var(--color-primary);
   color: white;
   border: none;
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 13px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: filter 0.2s;
 }
 
 .batch-btn:hover {
-  background: #2563eb;
+  filter: brightness(1.1);
 }
 
 .batch-btn.delete {
-  background: #ef4444;
+  background: var(--color-danger);
 }
 
 .batch-btn.delete:hover {
-  background: #dc2626;
+  filter: brightness(1.1);
 }
 
 .batch-btn.cancel {
-  background: #6b7280;
+  background: var(--text-muted);
 }
 
 .batch-btn.cancel:hover {
-  background: #4b5563;
+  filter: brightness(1.1);
 }
 
 .batch-tag-input {
@@ -63,16 +63,18 @@
 
 .batch-tag-input input {
   padding: 5px 8px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 13px;
   width: 100px;
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .batch-tag-input button {
   padding: 5px 8px;
   border: none;
-  background: #3b82f6;
+  background: var(--color-primary);
   color: white;
   border-radius: 4px;
   cursor: pointer;
@@ -84,34 +86,35 @@
   align-items: center;
   gap: 6px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .select-all-label input {
   cursor: pointer;
+  accent-color: var(--color-primary);
 }
 
 .btn-add {
-  background: #4caf50;
+  background: var(--color-success);
   color: white;
   border: none;
   padding: 10px 20px;
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: filter 0.2s;
 }
 
 .btn-add:hover {
-  background: #43a047;
+  filter: brightness(1.1);
 }
 
 .empty-state {
   text-align: center;
   padding: 40px;
-  color: #999;
-  background: #f9f9f9;
+  color: var(--text-muted);
+  background: var(--bg-hover);
   border-radius: 8px;
 }
 
