@@ -257,6 +257,18 @@
   border-radius: 4px;
 }
 
+.task-score {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+}
+
+.task-recurring {
+  font-size: 12px;
+}
+
 .subtask-badge.all-done {
   background: rgba(34, 197, 94, 0.15);
   color: var(--color-success);

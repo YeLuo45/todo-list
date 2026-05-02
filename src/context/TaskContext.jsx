@@ -4,6 +4,28 @@ import { fuzzySearch } from '../utils/search';
 
 const TaskContext = createContext(null);
 
+export function computeTaskScore(task) {
+  const imp = task.importance ?? 3;
+  const urg = task.urgency ?? 3;
+  return imp * urg;
+}
+
+export function getQuadrant(task) {
+  const imp = task.importance ?? 3;
+  const urg = task.urgency ?? 3;
+  if (urg >= 3 && imp >= 3) return 'Q1';
+  if (imp >= 3 && urg < 3) return 'Q2';
+  if (urg >= 3 && imp < 3) return 'Q3';
+  return 'Q4';
+}
+
+export const QUADRANT_LABELS = {
+  Q1: { label: '重要且紧急', color: '#ef4444', icon: '🔴', desc: '立即处理' },
+  Q2: { label: '重要不紧急', color: '#3b82f6', icon: '🔵', desc: '计划处理' },
+  Q3: { label: '紧急不重要', color: '#f59e0b', icon: '🟡', desc: '尽快处理' },
+  Q4: { label: '不重要不紧急', color: '#9ca3af', icon: '⚪', desc: '可忽略' },
+};
+
 const STORAGE_KEY = 'hermes_todos_v2';
 const LEGACY_STORAGE_KEY = 'hermes-todo-tasks';
 const SCHEMA_VERSION_KEY = 'hermes-todo-schema-version';
@@ -201,12 +223,18 @@ export function TaskProvider({ children }) {
       remindAt: taskData.remindAt || null,
       recurrence: taskData.recurrence || null,
       recurrenceEndDate: taskData.recurrenceEndDate || null,
+      isRecurring: taskData.isRecurring || false,
+      recurrenceInterval: taskData.recurrenceInterval || null,
       generatedDate: taskData.generatedDate || now,
       parentId: taskData.parentId || null,
       order: taskData.order ?? Date.now(),
       createdAt: now,
       updatedAt: now,
       reminded: false,
+      importance: taskData.importance ?? 3,
+      urgency: taskData.urgency ?? 3,
+      startTime: taskData.startTime || null,
+      endTime: taskData.endTime || null,
     };
     setTasks((prev) => [newTask, ...prev]);
     return newTask;

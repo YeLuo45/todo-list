@@ -10,6 +10,7 @@ import SettingsModal from './components/SettingsModal';
 import ImportExportModal from './components/ImportExportModal';
 import StatsDashboard from './components/StatsDashboard';
 import GanttChart from './components/GanttChart';
+import GistSyncModal from './components/GistSyncModal';
 import { useSync } from './hooks/useSync';
 import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -25,6 +26,7 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showGistSync, setShowGistSync] = useState(false);
   const filterBarRef = useRef();
 
   const { theme, toggleTheme } = useTheme();
@@ -149,6 +151,9 @@ function AppContent() {
             <button className="toolbar-btn" onClick={() => setShowImportExport(true)}>
               📥 导入/导出
             </button>
+            <button className="toolbar-btn" onClick={() => setShowGistSync(true)}>
+              ☁️ Gist同步
+            </button>
             <button className="toolbar-btn" onClick={handleNewTask}>
               ➕ 新建 (Ctrl+N)
             </button>
@@ -203,6 +208,12 @@ function AppContent() {
 
       {showStats && (
         <StatsDashboard tasks={allTasks} onClose={() => setShowStats(false)} />
+      )}
+
+      {showGistSync && (
+        <GistSyncModal
+          onClose={() => setShowGistSync(false)}
+        />
       )}
 
       {toasts.map((toast) => (

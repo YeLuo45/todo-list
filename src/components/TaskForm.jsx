@@ -22,6 +22,8 @@ export default function TaskForm({ editingTask, onClose }) {
   const [depSearch, setDepSearch] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [importance, setImportance] = useState(3);
+  const [urgency, setUrgency] = useState(3);
 
   useEffect(() => {
     if (editingTask) {
@@ -31,16 +33,22 @@ export default function TaskForm({ editingTask, onClose }) {
       setPriority(editingTask.priority || 'P1');
       setStatus(editingTask.status || 'todo');
       setDueDate(editingTask.dueDate || '');
-      setRemindBefore(editingTask.remindBefore || '');
-      setRemindAt(editingTask.remindAt || '');
+      setStartTime(editingTask.startTime ? editingTask.startTime.slice(0, 16) : '');
+      setEndTime(editingTask.endTime ? editingTask.endTime.slice(0, 16) : '');
+      setImportance(editingTask.importance ?? 3);
+      setUrgency(editingTask.urgency ?? 3);
       setRecurrence(editingTask.recurrence || '');
       setRecurrenceEndDate(editingTask.recurrenceEndDate || '');
       setIsRecurring(editingTask.isRecurring || false);
       setRecurrenceInterval(editingTask.recurrenceInterval || 'daily');
       setSubtasks(editingTask.subtasks || []);
       setDependsOn(editingTask.dependsOn || []);
+      setRemindBefore(editingTask.remindBefore || '');
+      setRemindAt(editingTask.remindAt || '');
       setStartTime(editingTask.startTime ? editingTask.startTime.slice(0, 16) : '');
       setEndTime(editingTask.endTime ? editingTask.endTime.slice(0, 16) : '');
+      setImportance(editingTask.importance ?? 3);
+      setUrgency(editingTask.urgency ?? 3);
     }
   }, [editingTask]);
 
@@ -106,6 +114,8 @@ export default function TaskForm({ editingTask, onClose }) {
       recurrenceInterval: isRecurring ? recurrenceInterval : null,
       startTime: startTime ? new Date(startTime).toISOString() : null,
       endTime: endTime ? new Date(endTime).toISOString() : null,
+      importance,
+      urgency,
     };
     if (editingTask) updateTask(editingTask.id, taskData);
     else createTask(taskData);
@@ -147,6 +157,33 @@ export default function TaskForm({ editingTask, onClose }) {
               <option value="in-progress">进行中</option>
               <option value="done">已完成</option>
             </select>
+          </div>
+        </div>
+
+        <div className="form-row score-row">
+          <div className="form-group">
+            <label>重要性 ⭐ <span className="score-hint">({importance}星)</span></label>
+            <div className="star-rating">
+              {[1,2,3,4,5].map(n => (
+                <span key={n} className={`star ${n <= importance ? 'filled' : ''}`}
+                  onClick={() => setImportance(n)}>★</span>
+              ))}
+            </div>
+          </div>
+          <div className="form-group">
+            <label>紧急度 🔥 <span className="score-hint">({urgency}星)</span></label>
+            <div className="star-rating">
+              {[1,2,3,4,5].map(n => (
+                <span key={n} className={`star urgency ${n <= urgency ? 'filled' : ''}`}
+                  onClick={() => setUrgency(n)}>★</span>
+              ))}
+            </div>
+          </div>
+          <div className="form-group score-result">
+            <label>综合评分</label>
+            <span className="score-badge" style={{
+              backgroundColor: importance * urgency >= 15 ? '#ef4444' : importance * urgency >= 9 ? '#f59e0b' : '#9ca3af'
+            }}>{importance * urgency}分</span>
           </div>
         </div>
 

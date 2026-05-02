@@ -256,3 +256,57 @@
   background: var(--color-primary);
   color: white;
 }
+
+.score-row {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.score-row .form-group {
+  flex: 1;
+}
+
+.score-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.star-rating {
+  display: flex;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.star {
+  font-size: 20px;
+  color: var(--border-color);
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.star.filled {
+  color: #fbbf24;
+}
+
+.star.urgency.filled {
+  color: #f97316;
+}
+
+.score-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  min-width: 36px;
+  text-align: center;
+}
+
+.score-result .form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}

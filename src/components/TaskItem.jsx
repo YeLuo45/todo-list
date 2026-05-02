@@ -1,5 +1,6 @@
 import { useTaskContext } from '../context/TaskContext';
 import { getReminderUrgency } from '../utils/reminder';
+import { computeTaskScore, QUADRANT_LABELS, getQuadrant } from '../context/TaskContext';
 import './TaskItem.css';
 
 const priorityColors = {
@@ -143,6 +144,16 @@ export default function TaskItem({ task, onEdit }) {
           )}
           {durationStr && (
             <span className="task-duration">{durationStr}</span>
+          )}
+          <span
+            className="task-score"
+            style={{ backgroundColor: QUADRANT_LABELS[getQuadrant(task)]?.color }}
+            title={`${QUADRANT_LABELS[getQuadrant(task)]?.label} · ${QUADRANT_LABELS[getQuadrant(task)]?.desc}`}
+          >
+            {computeTaskScore(task)}分
+          </span>
+          {task.isRecurring && (
+            <span className="task-recurring" title="循环任务">🔄</span>
           )}
         </div>
 
