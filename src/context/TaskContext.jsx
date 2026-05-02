@@ -213,22 +213,52 @@ export function TaskProvider({ children }) {
   }, []);
 
   const updateTask = useCallback((id, updates) => {
-    setTasks((prev) =>
-      prev.map((task) => {
-        if (task.id !== id) return task;
-        const next = { ...task, ...updates, updatedAt: new Date().toISOString() };
-        // Auto-timestamp on status transitions
-        if (updates.status && updates.status !== task.status) {
-          if (updates.status === 'in-progress' && !next.startTime) {
-            next.startTime = new Date().toISOString();
-          }
-          if (updates.status === 'done' && !next.endTime) {
-            next.endTime = new Date().toISOString();
+    setTasks((prev) => {
+      const task = prev.find((t) => t.id === id);
+      if (!task) return prev;
+
+      // Auto-timestamp on status transitions
+      const next = { ...updates, updatedAt: new Date().toISOString() };
+      if (updates.status && updates.status !== task.status) {
+        if (updates.status === 'in-progress' && !next.startTime) {
+          next.startTime = new Date().toISOString();
+        }
+        if (updates.status === 'done' && !next.endTime) {
+          next.endTime = new Date().toISOString();
+        }
+
+        // Recurring task completed — generate next instance
+        if (updates.status === 'done' && task.isRecurring && task.recurrenceInterval) {
+          const recurrenceEnd = task.recurrenceEndDate ? new Date(task.recurrenceEndDate) : null;
+          const nextDate = new Date(
+            task.recurrenceInterval === 'daily' ? (task.dueDate ? new Date(task.dueDate) : new Date()) :
+            task.recurrenceInterval === 'weekly' ? (task.dueDate ? new Date(task.dueDate) : new Date()) :
+            (task.dueDate ? new Date(task.dueDate) : new Date())
+          );
+          if (task.recurrenceInterval === 'daily') nextDate.setDate(nextDate.getDate() + 1);
+          else if (task.recurrenceInterval === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+          else if (task.recurrenceInterval === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+
+          if (!recurrenceEnd || nextDate <= recurrenceEnd) {
+            const newTask = {
+              ...task,
+              id: `${task.id}-${Date.now()}`,
+              title: task.title,
+              content: task.content,
+              dueDate: nextDate.toISOString().split('T')[0],
+              status: 'todo',
+              startTime: null,
+              endTime: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              subtasks: task.subtasks.map((st) => ({ ...st, done: false })),
+            };
+            return [...prev.map((t) => t.id === id ? { ...t, ...next } : t), newTask];
           }
         }
-        return next;
-      })
-    );
+      }
+      return prev.map((t) => t.id === id ? { ...t, ...next } : t);
+    });
   }, []);
 
   const deleteTask = useCallback((id) => {

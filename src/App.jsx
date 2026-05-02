@@ -9,6 +9,7 @@ import SyncStatus from './components/SyncStatus';
 import SettingsModal from './components/SettingsModal';
 import ImportExportModal from './components/ImportExportModal';
 import StatsDashboard from './components/StatsDashboard';
+import GanttChart from './components/GanttChart';
 import { useSync } from './hooks/useSync';
 import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -134,6 +135,12 @@ function AppContent() {
             >
               📊 看板 (2)
             </button>
+            <button
+              className={`view-btn ${view === 'gantt' ? 'active' : ''}`}
+              onClick={() => setView('gantt')}
+            >
+              📈 甘特图
+            </button>
           </div>
           <div className="toolbar-actions">
             <button className="toolbar-btn" onClick={() => setShowStats(true)}>
@@ -162,8 +169,10 @@ function AppContent() {
         )}
         {view === 'list' ? (
           <TaskList onEdit={handleEditTask} onNew={handleNewTask} />
-        ) : (
+        ) : view === 'kanban' ? (
           <KanbanBoard onEditTask={handleEditTask} />
+        ) : (
+          <GanttChart onEditTask={handleEditTask} />
         )}
       </main>
 

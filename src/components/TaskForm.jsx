@@ -14,6 +14,8 @@ export default function TaskForm({ editingTask, onClose }) {
   const [remindAt, setRemindAt] = useState('');
   const [recurrence, setRecurrence] = useState('');
   const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceInterval, setRecurrenceInterval] = useState('daily');
   const [subtasks, setSubtasks] = useState([]);
   const [subtaskInput, setSubtaskInput] = useState('');
   const [dependsOn, setDependsOn] = useState([]);
@@ -33,6 +35,8 @@ export default function TaskForm({ editingTask, onClose }) {
       setRemindAt(editingTask.remindAt || '');
       setRecurrence(editingTask.recurrence || '');
       setRecurrenceEndDate(editingTask.recurrenceEndDate || '');
+      setIsRecurring(editingTask.isRecurring || false);
+      setRecurrenceInterval(editingTask.recurrenceInterval || 'daily');
       setSubtasks(editingTask.subtasks || []);
       setDependsOn(editingTask.dependsOn || []);
       setStartTime(editingTask.startTime ? editingTask.startTime.slice(0, 16) : '');
@@ -98,6 +102,8 @@ export default function TaskForm({ editingTask, onClose }) {
       recurrenceEndDate: recurrenceEndDate || null,
       subtasks,
       dependsOn,
+      isRecurring,
+      recurrenceInterval: isRecurring ? recurrenceInterval : null,
       startTime: startTime ? new Date(startTime).toISOString() : null,
       endTime: endTime ? new Date(endTime).toISOString() : null,
     };
@@ -171,21 +177,32 @@ export default function TaskForm({ editingTask, onClose }) {
         </div>
 
         <div className="form-row">
-          <div className="form-group">
-            <label>重复周期</label>
-            <select value={recurrence} onChange={(e) => setRecurrence(e.target.value)}>
-              <option value="">不重复</option>
-              <option value="daily">每天</option>
-              <option value="weekly">每周</option>
-              <option value="monthly">每月</option>
-            </select>
+          <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <input
+              type="checkbox"
+              id="is-recurring-check"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              style={{ width: 16, height: 16 }}
+            />
+            <label htmlFor="is-recurring-check" style={{ margin: 0 }}>🔄 循环任务</label>
           </div>
-          {recurrence && (
-            <div className="form-group">
-              <label>重复结束日期</label>
-              <input type="date" value={recurrenceEndDate}
-                onChange={(e) => setRecurrenceEndDate(e.target.value)} />
-            </div>
+          {isRecurring && (
+            <>
+              <div className="form-group">
+                <label>循环频率</label>
+                <select value={recurrenceInterval} onChange={(e) => setRecurrenceInterval(e.target.value)}>
+                  <option value="daily">每天</option>
+                  <option value="weekly">每周</option>
+                  <option value="monthly">每月</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>循环结束日期</label>
+                <input type="date" value={recurrenceEndDate}
+                  onChange={(e) => setRecurrenceEndDate(e.target.value)} />
+              </div>
+            </>
           )}
         </div>
 
