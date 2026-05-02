@@ -117,6 +117,7 @@ export function TaskProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [hideCompleted, setHideCompleted] = useState(false);
   const [dateFilter, setDateFilter] = useState(null); // null = all, or date string 'YYYY-MM-DD'
+  const [selectedTaskIds, setSelectedTaskIds] = useState(new Set());
 
   // Generate daily recurring tasks if needed
   const ensureRecurringTasks = useCallback((taskList) => {
@@ -223,6 +224,43 @@ export function TaskProvider({ children }) {
     setTasks((prev) => prev.filter((task) => task.id !== id));
   }, []);
 
+  // Batch operations
+  const batchDeleteTasks = useCallback((ids) => {
+    setTasks((prev) => prev.filter((task) => !ids.includes(task.id)));
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.delete(id));
+      return next;
+    });
+  }, []);
+
+  const batchUpdateTasks = useCallback((ids, updates) => {
+    setTasks((prev) =>
+      prev.map((task) =>
+        ids.includes(task.id)
+          ? { ...task, ...updates, updatedAt: new Date().toISOString() }
+          : task
+      )
+    );
+  }, []);
+
+  const toggleTaskSelection = useCallback((id) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAllTasks = useCallback((ids) => {
+    setSelectedTaskIds(new Set(ids));
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedTaskIds(new Set());
+  }, []);
+
   const reorderTasks = useCallback((taskId, newOrder) => {
     setTasks((prev) =>
       prev.map((task) =>
@@ -309,6 +347,12 @@ export function TaskProvider({ children }) {
         reorderTasks,
         markAsRead,
         getAllTags,
+        selectedTaskIds,
+        toggleTaskSelection,
+        selectAllTasks,
+        clearSelection,
+        batchDeleteTasks,
+        batchUpdateTasks,
       }}
     >
       {children}

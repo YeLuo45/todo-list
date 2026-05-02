@@ -7,12 +7,89 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .task-list-header h2 {
   margin: 0;
   color: #333;
   font-size: 20px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.batch-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.batch-btn:hover {
+  background: #2563eb;
+}
+
+.batch-btn.delete {
+  background: #ef4444;
+}
+
+.batch-btn.delete:hover {
+  background: #dc2626;
+}
+
+.batch-btn.cancel {
+  background: #6b7280;
+}
+
+.batch-btn.cancel:hover {
+  background: #4b5563;
+}
+
+.batch-tag-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.batch-tag-input input {
+  padding: 5px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  width: 100px;
+}
+
+.batch-tag-input button {
+  padding: 5px 8px;
+  border: none;
+  background: #3b82f6;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+}
+
+.select-all-label input {
+  cursor: pointer;
 }
 
 .btn-add {

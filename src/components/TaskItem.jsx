@@ -8,14 +8,10 @@ const priorityColors = {
   P2: '#9ca3af',
 };
 
-const statusLabels = {
-  todo: '待办',
-  'in-progress': '进行中',
-  done: '已完成',
-};
-
 export default function TaskItem({ task, onEdit }) {
-  const { updateTask, deleteTask } = useTaskContext();
+  const { updateTask, deleteTask, toggleTaskSelection, selectedTaskIds } = useTaskContext();
+
+  const isSelected = selectedTaskIds.has(task.id);
 
   const handleStatusChange = (e) => {
     updateTask(task.id, { status: e.target.value });
@@ -25,6 +21,11 @@ export default function TaskItem({ task, onEdit }) {
     if (window.confirm('Delete this task?')) {
       deleteTask(task.id);
     }
+  };
+
+  const handleCheckbox = (e) => {
+    e.stopPropagation();
+    toggleTaskSelection(task.id);
   };
 
   const formatDate = (dateStr) => {
@@ -42,11 +43,19 @@ export default function TaskItem({ task, onEdit }) {
     urgency === 'urgent' ? 'urgent-card' : '',
     urgency === 'today' ? 'today-card' : '',
     urgency === 'upcoming' ? 'upcoming-card' : '',
+    isSelected ? 'selected' : '',
   ].filter(Boolean).join(' ');
 
   return (
     <div className={cardClass}>
       <div className="task-main">
+        <input
+          type="checkbox"
+          className="task-checkbox"
+          checked={isSelected}
+          onChange={handleCheckbox}
+          onClick={(e) => e.stopPropagation()}
+        />
         <select
           className="task-status"
           value={task.status}
@@ -58,7 +67,7 @@ export default function TaskItem({ task, onEdit }) {
         </select>
       </div>
 
-      <div className="task-content">
+      <div className="task-content" onClick={() => onEdit(task)}>
         <div className="task-header">
           <span className={`task-title ${urgency === 'overdue' ? 'overdue-title' : ''}`}>
             {task.title}
