@@ -170,6 +170,20 @@
   margin-top: 6px;
 }
 
+.kanban-drop-placeholder {
+  height: 4px;
+  background: #6366f1;
+  border-radius: 2px;
+  margin: 4px 0;
+  opacity: 0.8;
+  animation: kanban-pulse 1s infinite;
+}
+
+@keyframes kanban-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
 .kanban-add-task {
   display: flex;
   gap: 6px;

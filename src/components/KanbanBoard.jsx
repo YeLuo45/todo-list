@@ -8,63 +8,57 @@ const COLUMNS = [
   { id: 'done', label: '已完成 (Done)', color: '#22c55e' },
 ];
 
-const priorityColors = {
-  P0: '#ef4444',
-  P1: '#f59e0b',
-  P2: '#9ca3af',
-};
+const priorityColors = { P0: '#ef4444', P1: '#f59e0b', P2: '#9ca3b8' };
 
-function TaskCard({ task, onEdit, onDragStart, onDragEnd }) {
+function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
   const { deleteTask } = useTaskContext();
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData('taskId', task.id);
     e.dataTransfer.setData('sourceStatus', task.status);
-    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.setData('sourceOrder', String(task.order));
+    e.dataTransfer.effectAllowed = 'move';
     if (onDragStart) onDragStart(task.id);
   };
 
   const handleDragEnd = (e) => {
-    e.currentTarget.classList.remove('dragging');
     if (onDragEnd) onDragEnd();
   };
 
   const handleDelete = (e) => {
     e.stopPropagation();
-    if (window.confirm('删除此任务？')) {
-      deleteTask(task.id);
-    }
+    if (window.confirm('删除此任务？')) deleteTask(task.id);
   };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
   };
 
   const isOverdue = () => {
     if (!task.dueDate || task.status === 'done') return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const due = new Date(task.dueDate);
-    return due < today;
+    return new Date(task.dueDate) < today;
   };
 
   return (
     <div
-      className="kanban-card"
+      className={`kanban-card ${isDragging ? 'dragging' : ''} ${isHovered ? 'hovered' : ''}`}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="kanban-card-header">
-        <span
-          className="kanban-priority"
-          style={{ backgroundColor: priorityColors[task.priority] }}
-        >
+        <span className="kanban-priority" style={{ backgroundColor: priorityColors[task.priority] }}>
           {task.priority}
         </span>
-        <button className="kanban-btn-delete" onClick={handleDelete}>×</button>
+        {isHovered && (
+          <button className="kanban-btn-delete" onClick={handleDelete}>×</button>
+        )}
       </div>
       <div className="kanban-card-title">{task.title}</div>
       {task.content && <div className="kanban-card-desc">{task.content}</div>}
@@ -78,7 +72,7 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd }) {
         )}
         {task.dueDate && (
           <span className={`kanban-due ${isOverdue() ? 'overdue' : ''}`}>
-            📅 {formatDate(task.dueDate)}
+            {formatDate(task.dueDate)}
           </span>
         )}
       </div>
@@ -89,23 +83,68 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd }) {
   );
 }
 
-function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggingId }) {
+function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggingId, onDropTask }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [dropIndex, setDropIndex] = useState(-1);
+
+  const sortedTasks = [...tasks].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   const handleDragOver = (e) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
     setIsDragOver(true);
+
+    // 计算放置位置
+    const cards = e.currentTarget.querySelectorAll('.kanban-card:not(.dragging)');
+    let idx = sortedTasks.length;
+    for (let i = 0; i < cards.length; i++) {
+      const rect = cards[i].getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) { idx = i; break; }
+    }
+    setDropIndex(idx);
   };
 
-  const handleDragLeave = () => {
-    setIsDragOver(false);
+  const handleDragLeave = (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsDragOver(false);
+      setDropIndex(-1);
+    }
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragOver(false);
-    // Drop handling is done in KanbanBoard's handleDrop
+    const taskId = e.dataTransfer.getData('taskId');
+    const sourceStatus = e.dataTransfer.getData('sourceStatus');
+    const sourceOrder = parseInt(e.dataTransfer.getData('sourceOrder') || '0', 10);
+
+    // 计算新 order
+    const cards = e.currentTarget.querySelectorAll('.kanban-card:not(.dragging)');
+    let idx = sortedTasks.length;
+    for (let i = 0; i < cards.length; i++) {
+      const rect = cards[i].getBoundingClientRect();
+      if (e.clientY < rect.top + rect.height / 2) { idx = i; break; }
+    }
+
+    // 计算 targetOrder（插入位置前一个和后一个的 order 平均值）
+    let newOrder;
+    if (sortedTasks.length === 0) {
+      newOrder = Date.now();
+    } else if (idx === 0) {
+      newOrder = (sortedTasks[0].order || 0) - 1000;
+    } else if (idx >= sortedTasks.length) {
+      newOrder = (sortedTasks[sortedTasks.length - 1].order || 0) + 1000;
+    } else {
+      const before = sortedTasks[idx - 1].order || 0;
+      const after = sortedTasks[idx].order || 0;
+      newOrder = (before + after) / 2;
+    }
+
+    onDropTask(taskId, sourceStatus, column.id, newOrder);
+    setDropIndex(-1);
+    setDraggingId(null);
   };
 
   const handleAddTask = (e) => {
@@ -117,32 +156,38 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
   };
 
   return (
-    <div
-      className={`kanban-column ${isDragOver ? 'drag-over' : ''}`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
+    <div className={`kanban-column ${isDragOver ? 'drag-over' : ''}`}>
       <div className="kanban-column-header" style={{ borderColor: column.color }}>
         <span className="kanban-column-title">{column.label}</span>
         <span className="kanban-column-count" style={{ backgroundColor: column.color }}>
           {tasks.length}
         </span>
       </div>
-      <div className="kanban-column-content">
-        {tasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            onEdit={onEdit}
-            onDragStart={setDraggingId}
-            onDragEnd={() => setDraggingId(null)}
-          />
+
+      <div
+        className="kanban-column-content"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {sortedTasks.map((task, i) => (
+          <div key={task.id}>
+            {dropIndex === i && <div className="kanban-drop-placeholder" />}
+            <TaskCard
+              task={task}
+              onEdit={onEdit}
+              isDragging={draggingId === task.id}
+              onDragStart={setDraggingId}
+              onDragEnd={() => { setDraggingId(null); setDropIndex(-1); }}
+            />
+          </div>
         ))}
-        {tasks.length === 0 && !draggingId && (
+        {dropIndex === sortedTasks.length && <div className="kanban-drop-placeholder" />}
+        {sortedTasks.length === 0 && !draggingId && (
           <div className="kanban-empty">暂无任务</div>
         )}
       </div>
+
       <form className="kanban-add-task" onSubmit={handleAddTask}>
         <input
           type="text"
@@ -157,77 +202,38 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
 }
 
 export default function KanbanBoard({ onEditTask }) {
-  const { allTasks, createTask, updateTask } = useTaskContext();
+  const { allTasks, createTask, updateTask, reorderTasks } = useTaskContext();
   const [draggingId, setDraggingId] = useState(null);
 
-  const handleDrop = useCallback((targetColumnId) => {
-    if (!draggingId) return;
-    const task = allTasks.find((t) => t.id === draggingId);
-    if (task && task.status !== targetColumnId) {
-      updateTask(draggingId, { status: targetColumnId });
+  const handleDropTask = useCallback((taskId, sourceStatus, targetStatus, newOrder) => {
+    if (sourceStatus === targetStatus) {
+      // 列内重排序
+      reorderTasks(taskId, newOrder);
+    } else {
+      // 跨列移动：更新 status + order
+      updateTask(taskId, { status: targetStatus, order: newOrder });
     }
-    setDraggingId(null);
-  }, [draggingId, allTasks, updateTask]);
-
-  const handleDragStart = useCallback((taskId) => {
-    setDraggingId(taskId);
-  }, []);
-
-  const handleDragEnd = useCallback(() => {
-    setDraggingId(null);
-  }, []);
+  }, [reorderTasks, updateTask]);
 
   const handleAddTask = useCallback((columnId, title) => {
     createTask({ title, status: columnId, tags: [], priority: 'P1' });
   }, [createTask]);
 
-  // Attach drop handler to each column's drop zone
-  const renderColumn = (column) => {
-    const tasks = allTasks.filter((t) => t.status === column.id);
-    return (
-      <KanbanColumn
-        key={column.id}
-        column={column}
-        tasks={tasks}
-        onEdit={onEditTask}
-        onAddTask={handleAddTask}
-        draggingId={draggingId}
-        setDraggingId={setDraggingId}
-      />
-    );
-  };
-
   return (
     <div className="kanban-board">
       {COLUMNS.map((col) => {
         const tasks = allTasks.filter((t) => t.status === col.id);
-        const isOver = draggingId && col.id !== allTasks.find(t => t.id === draggingId)?.status;
         return (
-          <div
+          <KanbanColumn
             key={col.id}
-            className={`kanban-column-wrapper ${isOver ? 'drop-target' : ''}`}
-            onDragOver={(e) => {
-              e.preventDefault();
-              if (draggingId) e.currentTarget.classList.add('drag-over');
-            }}
-            onDragLeave={(e) => {
-              e.currentTarget.classList.remove('drag-over');
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.currentTarget.classList.remove('drag-over');
-              handleDrop(col.id);
-            }}
-          >
-            <KanbanColumn
-              column={col}
-              tasks={tasks}
-              onEdit={onEditTask}
-              onAddTask={handleAddTask}
-              draggingId={draggingId}
-              setDraggingId={setDraggingId}
-            />
-          </div>
+            column={col}
+            tasks={tasks}
+            onEdit={onEditTask}
+            onAddTask={handleAddTask}
+            draggingId={draggingId}
+            setDraggingId={setDraggingId}
+            onDropTask={handleDropTask}
+          />
         );
       })}
     </div>

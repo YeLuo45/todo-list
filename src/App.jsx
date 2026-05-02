@@ -8,6 +8,7 @@ import TaskForm from './components/TaskForm';
 import SyncStatus from './components/SyncStatus';
 import SettingsModal from './components/SettingsModal';
 import ImportExportModal from './components/ImportExportModal';
+import StatsDashboard from './components/StatsDashboard';
 import { useSync } from './hooks/useSync';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
 import './App.css';
@@ -20,6 +21,7 @@ function AppContent() {
   const [showForm, setShowForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   const {
     status,
@@ -108,6 +110,9 @@ function AppContent() {
             </button>
           </div>
           <div className="toolbar-actions">
+            <button className="toolbar-btn" onClick={() => setShowStats(true)}>
+              📊 统计
+            </button>
             <button className="toolbar-btn" onClick={() => setShowImportExport(true)}>
               📥 导入/导出
             </button>
@@ -150,6 +155,10 @@ function AppContent() {
           onImport={handleImport}
           onClose={() => setShowImportExport(false)}
         />
+      )}
+
+      {showStats && (
+        <StatsDashboard tasks={allTasks} onClose={() => setShowStats(false)} />
       )}
 
       {toasts.map((toast) => (

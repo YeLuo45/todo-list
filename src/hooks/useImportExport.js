@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { parseCSV, parseJSON, generateCSV, generateJSON, downloadFile } from '../utils/csv';
+import { parseCSV, generateCSV, generateJSON, downloadFile, downloadBlob, generateEPUB } from '../utils/csv';
 
 export function useImportExport(tasks) {
   // 导出 JSON
@@ -14,6 +14,13 @@ export function useImportExport(tasks) {
     const csv = generateCSV(tasks);
     const date = new Date().toISOString().split('T')[0];
     downloadFile(csv, `hermes-todos-${date}.csv`, 'text/csv');
+  }, [tasks]);
+
+  // 导出 EPUB
+  const exportEPUB = useCallback(async () => {
+    const blob = await generateEPUB(tasks);
+    const date = new Date().toISOString().split('T')[0];
+    downloadBlob(blob, `hermes-todos-${date}.epub`);
   }, [tasks]);
 
   // 解析文件
@@ -55,6 +62,7 @@ export function useImportExport(tasks) {
   return {
     exportJSON,
     exportCSV,
+    exportEPUB,
     parseFile,
     mergeImport,
     replaceImport,

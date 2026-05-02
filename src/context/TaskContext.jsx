@@ -197,6 +197,7 @@ export function TaskProvider({ children }) {
       recurrenceEndDate: taskData.recurrenceEndDate || null,
       generatedDate: taskData.generatedDate || now,
       parentId: taskData.parentId || null,
+      order: taskData.order ?? Date.now(),
       createdAt: now,
       updatedAt: now,
       reminded: false,
@@ -217,6 +218,16 @@ export function TaskProvider({ children }) {
 
   const deleteTask = useCallback((id) => {
     setTasks((prev) => prev.filter((task) => task.id !== id));
+  }, []);
+
+  const reorderTasks = useCallback((taskId, newOrder) => {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId
+          ? { ...task, order: newOrder, updatedAt: new Date().toISOString() }
+          : task
+      )
+    );
   }, []);
 
   const markAsRead = useCallback((id) => {
@@ -296,6 +307,7 @@ export function TaskProvider({ children }) {
         createTask,
         updateTask,
         deleteTask,
+        reorderTasks,
         markAsRead,
         getAllTags,
       }}

@@ -8,7 +8,7 @@ export default function ImportExportModal({ tasks, onImport, onClose }) {
   const [fileType, setFileType] = useState('');
   const [error, setError] = useState('');
   const fileInputRef = useRef();
-  const { exportJSON, exportCSV, parseFile } = useImportExport(tasks);
+  const { exportJSON, exportCSV, exportEPUB, parseFile } = useImportExport(tasks);
 
   const handleExportJSON = () => {
     exportJSON();
@@ -17,6 +17,11 @@ export default function ImportExportModal({ tasks, onImport, onClose }) {
 
   const handleExportCSV = () => {
     exportCSV();
+    onClose();
+  };
+
+  const handleExportEPUB = async () => {
+    await exportEPUB();
     onClose();
   };
 
@@ -59,6 +64,7 @@ export default function ImportExportModal({ tasks, onImport, onClose }) {
               <div className="ie-buttons">
                 <button className="ie-btn" onClick={handleExportJSON}>📄 导出 JSON</button>
                 <button className="ie-btn" onClick={handleExportCSV}>📊 导出 CSV</button>
+                <button className="ie-btn" onClick={handleExportEPUB}>📚 导出 EPUB</button>
               </div>
             </div>
 
