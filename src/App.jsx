@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { TaskProvider, useTaskContext } from './context/TaskContext';
 import TaskList from './components/TaskList';
 import FilterBar from './components/FilterBar';
@@ -10,11 +10,12 @@ import SettingsModal from './components/SettingsModal';
 import ImportExportModal from './components/ImportExportModal';
 import StatsDashboard from './components/StatsDashboard';
 import { useSync } from './hooks/useSync';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
 import './App.css';
 
 function AppContent() {
-  const { allTasks, markAsRead, setTasks } = useTaskContext();
+  const { tasks: filteredTasks, allTasks, markAsRead, setTasks } = useTaskContext();
   const [toasts, setToasts] = useState([]);
   const [view, setView] = useState('list');
   const [editingTask, setEditingTask] = useState(null);
@@ -22,6 +23,7 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [showImportExport, setShowImportExport] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const filterBarRef = useRef();
 
   const {
     status,
@@ -29,7 +31,6 @@ function AppContent() {
     githubToken,
     githubRepo,
     login,
-    logout,
     sync,
   } = useSync(allTasks, setTasks);
 
@@ -59,7 +60,8 @@ function AppContent() {
   const handleNewTask = useCallback(() => {
     setEditingTask(null);
     setShowForm(true);
-  }, []);
+    if (view !== 'list') setView('list');
+  }, [view]);
 
   const handleCloseForm = useCallback(() => {
     setShowForm(false);
@@ -74,6 +76,24 @@ function AppContent() {
   const handleImport = useCallback((tasks) => {
     setTasks(tasks);
   }, [setTasks]);
+
+  // 全局快捷键
+  useKeyboardShortcuts({
+    onFocusSearch: () => {
+      if (view !== 'list') setView('list');
+      setTimeout(() => filterBarRef.current?.focus(), 50);
+    },
+    onNewTask: handleNewTask,
+    onViewList: () => setView('list'),
+    onViewKanban: () => setView('kanban'),
+    onOpenStats: () => setShowStats(true),
+    onCloseModal: () => {
+      if (showForm) setShowForm(false);
+      else if (showSettings) setShowSettings(false);
+      else if (showImportExport) setShowImportExport(false);
+      else if (showStats) setShowStats(false);
+    },
+  });
 
   return (
     <div className="app">
@@ -100,21 +120,24 @@ function AppContent() {
               className={`view-btn ${view === 'list' ? 'active' : ''}`}
               onClick={() => setView('list')}
             >
-              📋 列表
+              📋 列表 (1)
             </button>
             <button
               className={`view-btn ${view === 'kanban' ? 'active' : ''}`}
               onClick={() => setView('kanban')}
             >
-              📊 看板
+              📊 看板 (2)
             </button>
           </div>
           <div className="toolbar-actions">
             <button className="toolbar-btn" onClick={() => setShowStats(true)}>
-              📊 统计
+              📊 统计 (3)
             </button>
             <button className="toolbar-btn" onClick={() => setShowImportExport(true)}>
               📥 导入/导出
+            </button>
+            <button className="toolbar-btn" onClick={handleNewTask}>
+              ➕ 新建 (Ctrl+N)
             </button>
             {githubToken && (
               <button className="toolbar-btn" onClick={sync}>
@@ -124,7 +147,13 @@ function AppContent() {
           </div>
         </div>
 
-        {view === 'list' && <FilterBar />}
+        {view === 'list' && (
+          <FilterBar
+            ref={filterBarRef}
+            resultCount={filteredTasks.length}
+            totalCount={allTasks.length}
+          />
+        )}
         {view === 'list' ? (
           <TaskList onEdit={handleEditTask} onNew={handleNewTask} />
         ) : (

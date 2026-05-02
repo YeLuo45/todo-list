@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { fuzzySearch } from '../utils/search';
 
 const TaskContext = createContext(null);
 
@@ -257,14 +258,10 @@ export function TaskProvider({ children }) {
       }
       // Multi-select tag filter: show task if it has ANY of the selected tags
       if (filterTags.length > 0 && !task.tags.some(tag => filterTags.includes(tag))) return false;
-      // Search filter: search in title + description (content)
+      // Search filter: fuzzy search in title + content + tags
       if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        if (
-          !task.title.toLowerCase().includes(q) &&
-          !task.content.toLowerCase().includes(q)
-        )
-          return false;
+        const matched = fuzzySearch([task], searchQuery);
+        if (matched.length === 0) return false;
       }
       return true;
     })

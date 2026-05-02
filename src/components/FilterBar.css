@@ -1,3 +1,38 @@
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.search-wrapper .search-input {
+  width: 100%;
+}
+
+.search-count {
+  position: absolute;
+  right: 70px;
+  font-size: 11px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+}
+
+.search-clear:hover {
+  color: #ef4444;
+}
+
 .filter-bar {
   background: white;
   border-radius: 8px;

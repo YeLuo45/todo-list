@@ -1,7 +1,8 @@
+import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import './FilterBar.css';
 
-export default function FilterBar() {
+const FilterBar = forwardRef(function FilterBar({ resultCount, totalCount }, ref) {
   const {
     filterTags,
     setFilterTags,
@@ -16,28 +17,45 @@ export default function FilterBar() {
     setDateFilter,
   } = useTaskContext();
 
+  const inputRef = useRef();
   const allTags = getAllTags();
-
   const today = new Date().toISOString().split('T')[0];
 
+  useImperativeHandle(ref, () => ({
+    focus: () => inputRef.current?.focus(),
+  }));
+
   const toggleTag = (tag) => {
-    setFilterTags(prev =>
+    setFilterTags((prev) =>
       prev.includes(tag)
-        ? prev.filter(t => t !== tag)
+        ? prev.filter((t) => t !== tag)
         : [...prev, tag]
     );
   };
 
+  const handleClear = () => setSearchQuery('');
+
   return (
     <div className="filter-bar">
       <div className="filter-row">
-        <input
-          type="text"
-          className="search-input"
-          placeholder="搜索任务..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+        <div className="search-wrapper">
+          <input
+            ref={inputRef}
+            type="text"
+            className="search-input"
+            placeholder={searchQuery ? '' : '搜索任务... (Ctrl+K)'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <>
+              <span className="search-count">
+                {resultCount}/{totalCount}
+              </span>
+              <button className="search-clear" onClick={handleClear} title="清除 (Esc)">×</button>
+            </>
+          )}
+        </div>
 
         <select
           className="sort-select"
@@ -47,11 +65,10 @@ export default function FilterBar() {
           <option value="createdAt">创建时间</option>
           <option value="dueDate">截止日期</option>
           <option value="priority">优先级</option>
+          <option value="updatedAt">更新时间</option>
         </select>
-      </div>
 
-      <div className="filter-row">
-        <label className="hide-completed-toggle">
+        <label className="hide-completed">
           <input
             type="checkbox"
             checked={hideCompleted}
@@ -97,4 +114,6 @@ export default function FilterBar() {
       )}
     </div>
   );
-}
+});
+
+export default FilterBar;
