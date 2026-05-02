@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useTaskContext } from '../context/TaskContext';
+import { getReminderUrgency } from '../utils/reminder';
 import './KanbanBoard.css';
 
 const COLUMNS = [
@@ -43,9 +44,19 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
     return new Date(task.dueDate) < today;
   };
 
+  const urgency = getReminderUrgency(task);
+
   return (
     <div
-      className={`kanban-card ${isDragging ? 'dragging' : ''} ${isHovered ? 'hovered' : ''}`}
+      className={[
+        'kanban-card',
+        isDragging ? 'dragging' : '',
+        isHovered ? 'hovered' : '',
+        urgency === 'overdue' ? 'overdue-card' : '',
+        urgency === 'urgent' ? 'urgent-card' : '',
+        urgency === 'today' ? 'today-card' : '',
+        urgency === 'upcoming' ? 'upcoming-card' : '',
+      ].filter(Boolean).join(' ')}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -71,8 +82,12 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging }) {
           </div>
         )}
         {task.dueDate && (
-          <span className={`kanban-due ${isOverdue() ? 'overdue' : ''}`}>
-            {formatDate(task.dueDate)}
+          <span className={`kanban-due ${urgency === 'overdue' ? 'overdue' : ''} ${urgency === 'urgent' ? 'urgent' : ''}`}>
+            📅 {formatDate(task.dueDate)}
+            {urgency === 'overdue' && ' ⚠️'}
+            {urgency === 'urgent' && ' 🔥'}
+            {urgency === 'today' && ' 📌'}
+            {urgency === 'upcoming' && ' ⏰'}
           </span>
         )}
       </div>

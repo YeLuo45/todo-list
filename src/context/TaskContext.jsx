@@ -194,6 +194,8 @@ export function TaskProvider({ children }) {
       priority: taskData.priority || 'P1',
       status: taskData.status || 'todo',
       dueDate: taskData.dueDate || null,
+      remindBefore: taskData.remindBefore || null,
+      remindAt: taskData.remindAt || null,
       recurrence: taskData.recurrence || null,
       recurrenceEndDate: taskData.recurrenceEndDate || null,
       generatedDate: taskData.generatedDate || now,

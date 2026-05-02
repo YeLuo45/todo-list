@@ -1,4 +1,5 @@
 import { useTaskContext } from '../context/TaskContext';
+import { getReminderUrgency } from '../utils/reminder';
 import './TaskItem.css';
 
 const priorityColors = {
@@ -32,16 +33,19 @@ export default function TaskItem({ task, onEdit }) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const isOverdue = () => {
-    if (!task.dueDate || task.status === 'done') return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const due = new Date(task.dueDate);
-    return due < today;
-  };
+  const urgency = getReminderUrgency(task);
+
+  const cardClass = [
+    'task-item',
+    task.status === 'done' ? 'done' : '',
+    urgency === 'overdue' ? 'overdue-card' : '',
+    urgency === 'urgent' ? 'urgent-card' : '',
+    urgency === 'today' ? 'today-card' : '',
+    urgency === 'upcoming' ? 'upcoming-card' : '',
+  ].filter(Boolean).join(' ');
 
   return (
-    <div className={`task-item ${task.status === 'done' ? 'done' : ''}`}>
+    <div className={cardClass}>
       <div className="task-main">
         <select
           className="task-status"
@@ -52,40 +56,46 @@ export default function TaskItem({ task, onEdit }) {
           <option value="in-progress">进行中</option>
           <option value="done">已完成</option>
         </select>
+      </div>
 
-        <div className="task-content">
-          <div className="task-header">
-            <span className={`task-title ${isOverdue() ? 'overdue-title' : ''}`}>{task.title}</span>
-            <span
-              className="task-priority"
-              style={{ backgroundColor: priorityColors[task.priority] }}
-            >
-              {task.priority}
+      <div className="task-content">
+        <div className="task-header">
+          <span className={`task-title ${urgency === 'overdue' ? 'overdue-title' : ''}`}>
+            {task.title}
+          </span>
+          <span
+            className="task-priority"
+            style={{ backgroundColor: priorityColors[task.priority] }}
+          >
+            {task.priority}
+          </span>
+        </div>
+
+        {task.content && <p className="task-description">{task.content}</p>}
+
+        <div className="task-meta">
+          {task.tags.length > 0 && (
+            <div className="task-tags">
+              {task.tags.map((tag) => (
+                <span key={tag} className="task-tag">{tag}</span>
+              ))}
+            </div>
+          )}
+          {task.dueDate && (
+            <span className={`task-due ${urgency === 'overdue' ? 'overdue' : ''} ${urgency === 'urgent' ? 'urgent' : ''}`}>
+              📅 {formatDate(task.dueDate)}
+              {urgency === 'overdue' && ' ⚠️'}
+              {urgency === 'urgent' && ' 🔥'}
+              {urgency === 'today' && ' 📌'}
+              {urgency === 'upcoming' && ' ⏰'}
             </span>
-          </div>
-
-          {task.content && <p className="task-description">{task.content}</p>}
-
-          <div className="task-meta">
-            {task.tags.length > 0 && (
-              <div className="task-tags">
-                {task.tags.map((tag) => (
-                  <span key={tag} className="task-tag">{tag}</span>
-                ))}
-              </div>
-            )}
-            {task.dueDate && (
-              <span className={`task-due ${isOverdue() ? 'overdue' : ''}`}>
-                📅 {formatDate(task.dueDate)}
-              </span>
-            )}
-          </div>
+          )}
         </div>
+      </div>
 
-        <div className="task-actions">
-          <button className="btn-edit" onClick={() => onEdit(task)}>编辑</button>
-          <button className="btn-delete" onClick={handleDelete}>删除</button>
-        </div>
+      <div className="task-actions">
+        <button className="btn-edit" onClick={() => onEdit(task)}>编辑</button>
+        <button className="btn-delete" onClick={handleDelete}>删除</button>
       </div>
     </div>
   );

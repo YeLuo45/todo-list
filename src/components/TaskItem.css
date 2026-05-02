@@ -138,3 +138,29 @@
 .btn-delete:hover {
   background: #e53935;
 }
+
+/* Urgency states */
+.overdue-card {
+  border-left: 4px solid #ef4444;
+  background: #fef2f2;
+}
+
+.urgent-card {
+  border-left: 4px solid #f97316;
+  background: #fff7ed;
+}
+
+.today-card {
+  border-left: 4px solid #3b82f6;
+  background: #eff6ff;
+}
+
+.upcoming-card {
+  border-left: 4px solid #eab308;
+  background: #fefce8;
+}
+
+.task-due.urgent {
+  color: #ea580c;
+  font-weight: 600;
+}

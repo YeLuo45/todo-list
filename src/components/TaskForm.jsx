@@ -10,6 +10,8 @@ export default function TaskForm({ editingTask, onClose }) {
   const [priority, setPriority] = useState('P1');
   const [status, setStatus] = useState('todo');
   const [dueDate, setDueDate] = useState('');
+  const [remindBefore, setRemindBefore] = useState(''); // '', '1h', '1d'
+  const [remindAt, setRemindAt] = useState(''); // exact datetime
   const [recurrence, setRecurrence] = useState(''); // '', 'daily', 'weekly', 'monthly'
   const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
 
@@ -21,6 +23,8 @@ export default function TaskForm({ editingTask, onClose }) {
       setPriority(editingTask.priority || 'P1');
       setStatus(editingTask.status || 'todo');
       setDueDate(editingTask.dueDate || '');
+      setRemindBefore(editingTask.remindBefore || '');
+      setRemindAt(editingTask.remindAt || '');
       setRecurrence(editingTask.recurrence || '');
       setRecurrenceEndDate(editingTask.recurrenceEndDate || '');
     }
@@ -42,6 +46,8 @@ export default function TaskForm({ editingTask, onClose }) {
       priority,
       status,
       dueDate: dueDate || null,
+      remindBefore: remindBefore || null,
+      remindAt: remindAt || null,
       recurrence: recurrence || null,
       recurrenceEndDate: recurrenceEndDate || null,
     };
@@ -112,6 +118,26 @@ export default function TaskForm({ editingTask, onClose }) {
             />
           </div>
 
+          <div className="form-group">
+            <label>提醒</label>
+            <select value={remindBefore} onChange={(e) => { setRemindBefore(e.target.value); if (e.target.value) setRemindAt(''); }}>
+              <option value="">无</option>
+              <option value="1h">提前 1 小时</option>
+              <option value="1d">提前 1 天</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>精确提醒时间</label>
+            <input
+              type="datetime-local"
+              value={remindAt}
+              onChange={(e) => { setRemindAt(e.target.value); if (e.target.value) setRemindBefore(''); }}
+            />
+          </div>
+        </div>
+
+        <div className="form-row">
           <div className="form-group">
             <label>标签</label>
             <input
