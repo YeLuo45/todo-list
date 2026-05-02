@@ -1,26 +1,19 @@
 {
   "name": "Hermes TodoList",
   "short_name": "TodoList",
-  "description": "A simple and elegant todo list app with PWA support",
+  "description": "高效任务管理 - 看板、甘特图、仪表板",
   "start_url": "/todo-list/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#6366f1",
+  "background_color": "#1a1a2e",
+  "theme_color": "#3b82f6",
+  "orientation": "any",
   "icons": [
     {
-      "src": "/hermes-agent/icon-192.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/hermes-agent/icon-512.svg",
-      "sizes": "512x512",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>",
+      "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "utilities"],
-  "lang": "en",
-  "dir": "ltr"
+  "categories": ["productivity", "utilities"]
 }

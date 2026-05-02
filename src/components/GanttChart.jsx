@@ -45,8 +45,12 @@ function nextInstance(interval, from) {
 export default function GanttChart({ onEditTask }) {
   const { allTasks, updateTask, createTask } = useTaskContext();
   const containerRef = useRef(null);
+  const [viewMode, setViewMode] = useState('month'); // 'month' | 'week'
   const [dragState, setDragState] = useState(null); // { taskId, edge: 'left'|'right', startX, originStart, originEnd }
   const [groupBy, setGroupBy] = useState('status'); // 'status' | 'priority'
+  const DAY_WIDTH = viewMode === 'week' ? 80 : 40; // px per day
+  const ROW_HEIGHT = 44;
+  const HEADER_HEIGHT = 60;
 
   // Only tasks with dueDate or startTime
   const tasks = useMemo(
@@ -54,23 +58,30 @@ export default function GanttChart({ onEditTask }) {
     [allTasks]
   );
 
-  // Timeline: from earliest start (or today-3) to latest due (or today+30)
-  const { start: timelineStart, end: timelineEnd } = useMemo(() => {
+  const timelineRange = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let start, end;
+    if (viewMode === 'week') {
+      start = new Date(today); start.setDate(today.getDate() - 3);
+      end = new Date(today); end.setDate(today.getDate() + 3);
+    } else {
+      start = new Date(today); start.setDate(today.getDate() - 3);
+      end = new Date(today); end.setDate(today.getDate() + 30);
+    }
     const dates = tasks.map((t) => {
       if (t.startTime) { const d = parseDate(t.startTime); if (d) return d; }
       if (t.dueDate) { const d = parseDate(t.dueDate); if (d) return d; }
       return null;
     }).filter(Boolean);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    let earliest = new Date(today); earliest.setDate(today.getDate() - 3);
-    let latest = new Date(today); latest.setDate(today.getDate() + 30);
     dates.forEach((d) => {
-      if (d < earliest) earliest = d;
-      if (d > latest) latest = d;
+      if (d < start) start = d;
+      if (d > end) end = d;
     });
-    return { start: earliest, end: latest };
-  }, [tasks]);
+    return { start, end };
+  }, [tasks, viewMode]);
+
+  const timelineStart = timelineRange.start;
+  const timelineEnd = timelineRange.end;
 
   const days = useMemo(() => getDays(timelineStart, timelineEnd), [timelineStart, timelineEnd]);
   const totalWidth = days.length * DAY_WIDTH;
@@ -170,7 +181,15 @@ export default function GanttChart({ onEditTask }) {
       <div className="gantt-header-bar">
         <span>📊 甘特图 — 共 {tasks.length} 个有时间跨度的任务</span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          <button
+            className={`gantt-group-btn ${viewMode === 'month' ? 'active' : ''}`}
+            onClick={() => setViewMode('month')}
+          >月视图</button>
+          <button
+            className={`gantt-group-btn ${viewMode === 'week' ? 'active' : ''}`}
+            onClick={() => setViewMode('week')}
+          >周视图</button>
+          <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>
             泳道分组：
           </span>
           <button
