@@ -282,6 +282,7 @@ export function TaskProvider({ children }) {
       value={{
         tasks: filteredTasks,
         allTasks: tasks,
+        setTasks,
         filterTags,
         setFilterTags,
         searchQuery,

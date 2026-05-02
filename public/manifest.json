@@ -2,7 +2,7 @@
   "name": "Hermes TodoList",
   "short_name": "TodoList",
   "description": "A simple and elegant todo list app with PWA support",
-  "start_url": "/hermes-agent/",
+  "start_url": "/todo-list/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#6366f1",

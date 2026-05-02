@@ -1,0 +1,106 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h3 {
+  margin-bottom: 20px;
+  font-size: 18px;
+  color: #1e293b;
+}
+
+.modal-content .form-group {
+  margin-bottom: 16px;
+}
+
+.modal-content .form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #334155;
+  font-size: 14px;
+}
+
+.modal-content .form-group input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.modal-content .form-group input:focus {
+  border-color: #6366f1;
+}
+
+.modal-content .form-group small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.token-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.token-input-row input {
+  flex: 1;
+}
+
+.btn-toggle {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.modal-content .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.btn-cancel {
+  padding: 8px 16px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-save {
+  padding: 8px 20px;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-save:hover {
+  background: #4f46e5;
+}
