@@ -46,6 +46,7 @@ export default function GanttChart({ onEditTask }) {
   const { allTasks, updateTask, createTask } = useTaskContext();
   const containerRef = useRef(null);
   const [dragState, setDragState] = useState(null); // { taskId, edge: 'left'|'right', startX, originStart, originEnd }
+  const [groupBy, setGroupBy] = useState('status'); // 'status' | 'priority'
 
   // Only tasks with dueDate or startTime
   const tasks = useMemo(
@@ -139,12 +140,28 @@ export default function GanttChart({ onEditTask }) {
 
   // Group tasks
   const grouped = useMemo(() => {
+    if (groupBy === 'priority') {
+      const groups = { P0: [], P1: [], P2: [] };
+      tasks.forEach((t) => {
+        const key = t.priority || 'P1';
+        if (groups[key]) groups[key].push(t);
+      });
+      return groups;
+    }
+    // groupBy === 'status'
     const groups = { todo: [], 'in-progress': [], done: [] };
     tasks.forEach((t) => {
       if (groups[t.status]) groups[t.status].push(t);
     });
     return groups;
-  }, [tasks]);
+  }, [tasks, groupBy]);
+
+  const groupLabel = (key) => {
+    if (groupBy === 'priority') {
+      return { P0: '🔴 P0 紧急', P1: '🟡 P1 普通', P2: '⚪ P2 低优先级' }[key] || key;
+    }
+    return { todo: '📋 待办', 'in-progress': '🔄 进行中', done: '✅ 已完成' }[key] || key;
+  };
 
   const todayOffset = dateOffset(new Date());
 
@@ -152,9 +169,19 @@ export default function GanttChart({ onEditTask }) {
     <div className="gantt-wrapper">
       <div className="gantt-header-bar">
         <span>📊 甘特图 — 共 {tasks.length} 个有时间跨度的任务</span>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          拖拽任务条左右边缘调整日期
-        </span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            泳道分组：
+          </span>
+          <button
+            className={`gantt-group-btn ${groupBy === 'status' ? 'active' : ''}`}
+            onClick={() => setGroupBy('status')}
+          >按状态</button>
+          <button
+            className={`gantt-group-btn ${groupBy === 'priority' ? 'active' : ''}`}
+            onClick={() => setGroupBy('priority')}
+          >按优先级</button>
+        </div>
       </div>
       <div className="gantt-scroll" ref={containerRef}>
         {/* Day headers */}
@@ -181,12 +208,12 @@ export default function GanttChart({ onEditTask }) {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          {Object.entries(grouped).map(([status, groupTasks]) => {
+          {Object.entries(grouped).map(([groupKey, groupTasks]) => {
             if (groupTasks.length === 0) return null;
             return (
-              <div key={status} className="gantt-group">
+              <div key={groupKey} className="gantt-group">
                 <div className="gantt-group-label">
-                  {status === 'todo' ? '📋 待办' : status === 'in-progress' ? '🔄 进行中' : '✅ 已完成'}
+                  {groupLabel(groupKey)}
                 </div>
                 <div className="gantt-rows" style={{ width: totalWidth }}>
                   {/* Today line */}

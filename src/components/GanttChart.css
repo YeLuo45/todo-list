@@ -175,3 +175,25 @@
   line-height: 1.8;
   width: 100%;
 }
+
+.gantt-group-btn {
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.gantt-group-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.gantt-group-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}

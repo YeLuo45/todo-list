@@ -10,6 +10,7 @@ import SettingsModal from './components/SettingsModal';
 import ImportExportModal from './components/ImportExportModal';
 import StatsDashboard from './components/StatsDashboard';
 import GanttChart from './components/GanttChart';
+import Dashboard from './components/Dashboard';
 import GistSyncModal from './components/GistSyncModal';
 import { useSync } from './hooks/useSync';
 import { useTheme } from './hooks/useTheme';
@@ -20,7 +21,7 @@ import './App.css';
 function AppContent() {
   const { tasks: filteredTasks, allTasks, markAsRead, setTasks } = useTaskContext();
   const [toasts, setToasts] = useState([]);
-  const [view, setView] = useState('list');
+  const [view, setView] = useState('dashboard');
   const [editingTask, setEditingTask] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -47,6 +48,13 @@ function AppContent() {
       markAsRead(task.id);
       addToast(`Task "${task.title}" is due!`);
     });
+  }, []);
+
+  // Listen for cross-component view switch events (e.g. from Dashboard quick actions)
+  useEffect(() => {
+    const handler = (e) => setView(e.detail);
+    window.addEventListener('switch-view', handler);
+    return () => window.removeEventListener('switch-view', handler);
   }, []);
 
   const addToast = useCallback((message) => {
@@ -126,16 +134,22 @@ function AppContent() {
         <div className="toolbar-row">
           <div className="view-toggle">
             <button
+              className={`view-btn ${view === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setView('dashboard')}
+            >
+              🏠 首页
+            </button>
+            <button
               className={`view-btn ${view === 'list' ? 'active' : ''}`}
               onClick={() => setView('list')}
             >
-              📋 列表 (1)
+              📋 列表
             </button>
             <button
               className={`view-btn ${view === 'kanban' ? 'active' : ''}`}
               onClick={() => setView('kanban')}
             >
-              📊 看板 (2)
+              📊 看板
             </button>
             <button
               className={`view-btn ${view === 'gantt' ? 'active' : ''}`}
@@ -165,6 +179,12 @@ function AppContent() {
           </div>
         </div>
 
+        {view === 'dashboard' && (
+          <Dashboard
+            onNewTask={handleNewTask}
+            onEditTask={handleEditTask}
+          />
+        )}
         {view === 'list' && (
           <FilterBar
             ref={filterBarRef}
@@ -176,9 +196,9 @@ function AppContent() {
           <TaskList onEdit={handleEditTask} onNew={handleNewTask} />
         ) : view === 'kanban' ? (
           <KanbanBoard onEditTask={handleEditTask} />
-        ) : (
+        ) : view === 'gantt' ? (
           <GanttChart onEditTask={handleEditTask} />
-        )}
+        ) : null}
       </main>
 
       <footer className="app-footer">
