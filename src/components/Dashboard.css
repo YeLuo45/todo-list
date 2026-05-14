@@ -338,3 +338,139 @@
   font-size: 14px;
   font-weight: 600;
 }
+
+/* Conflict KPI */
+.conflict-kpi {
+  cursor: pointer;
+}
+
+.conflict-kpi:hover {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+/* Dashboard Modal */
+.dashboard-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dashboard-modal {
+  background: var(--bg-card);
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+}
+
+.dashboard-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dashboard-modal-body p {
+  margin: 0 0 16px;
+  color: var(--text-secondary);
+}
+
+.conflict-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conflict-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+}
+
+.conflict-item.conflict-circular {
+  border-left: 3px solid #ef4444;
+}
+
+.conflict-item.conflict-dangling {
+  border-left: 3px solid #f59e0b;
+}
+
+.conflict-item.conflict-time_conflict {
+  border-left: 3px solid #8b5cf6;
+}
+
+.conflict-type {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.conflict-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dashboard-modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dashboard-modal-footer .btn-primary {
+  padding: 8px 20px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.dashboard-modal-footer .btn-primary:hover {
+  opacity: 0.9;
+}

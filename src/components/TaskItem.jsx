@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { getReminderUrgency } from '../utils/reminder';
 import { computeTaskScore, QUADRANT_LABELS, getQuadrant } from '../context/TaskContext';
 import { getAIPriorityScore } from '../utils/aiPriority';
 import { breakIntoSubtasks, getAPIToken } from '../utils/aiSubtask';
+import { getQuickEstimate, predictCompletionTime } from '../utils/aiPrediction';
 import './TaskItem.css';
 
 const priorityColors = {
@@ -17,6 +18,8 @@ export default function TaskItem({ task, onEdit }) {
 
   const [isAIBreaking, setIsAIBreaking] = useState(false);
   const [aiError, setAiError] = useState(null);
+  const [prediction, setPrediction] = useState(null);
+  const [isPredicting, setIsPredicting] = useState(false);
 
   const isSelected = selectedTaskIds.has(task.id);
   const blocked = isTaskBlocked(task.id);
@@ -87,6 +90,31 @@ export default function TaskItem({ task, onEdit }) {
   const urgency = getReminderUrgency(task);
   const completedSubs = (task.subtasks || []).filter((s) => s.done).length;
   const totalSubs = (task.subtasks || []).length;
+
+  // AI Completion Time Prediction
+  useEffect(() => {
+    if ((task.subtasks || []).length > 0) {
+      // Quick estimate based on subtasks (synchronous)
+      const quickEst = getQuickEstimate(task);
+      if (quickEst) {
+        setPrediction(quickEst);
+      }
+      
+      // Async AI prediction if token is available
+      const token = getAPIToken();
+      if (token) {
+        setIsPredicting(true);
+        predictCompletionTime(task, allTasks).then(result => {
+          setPrediction(result);
+          setIsPredicting(false);
+        }).catch(() => {
+          setIsPredicting(false);
+        });
+      }
+    } else {
+      setPrediction(null);
+    }
+  }, [task.id, task.subtasks, allTasks]);
 
   // Duration
   const formatDuration = (ms) => {
@@ -202,6 +230,11 @@ export default function TaskItem({ task, onEdit }) {
           {totalSubs > 0 && (
             <span className={`subtask-badge ${completedSubs === totalSubs ? 'all-done' : ''}`}>
               ☑️ {completedSubs}/{totalSubs}
+            </span>
+          )}
+          {prediction && (
+            <span className="task-prediction" title={`预计 ${prediction.estimatedDays} 天完成 (${prediction.basedOn})`}>
+              {isPredicting ? '⏳ 预测中...' : `📊 预计 ${prediction.estimatedDays} 天`}
             </span>
           )}
           {durationStr && (

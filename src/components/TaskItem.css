@@ -284,6 +284,22 @@
   cursor: help;
 }
 
+/* AI Prediction Badge */
+.task-prediction {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+  font-weight: 600;
+  cursor: help;
+}
+
+[data-theme="dark"] .task-prediction {
+  background: rgba(139, 92, 246, 0.25);
+  color: #a78bfa;
+}
+
 /* AI Actions */
 .task-ai-actions {
   display: flex;

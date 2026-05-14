@@ -1,12 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTaskContext, computeTaskScore, getQuadrant, QUADRANT_LABELS } from '../context/TaskContext';
 import { getReminderUrgency } from '../utils/reminder';
+import { checkDependencyConflicts } from '../utils/aiDependency';
 import MilestoneBoard from './MilestoneBoard';
 import './Dashboard.css';
 
-function KpiCard({ icon, label, value, color, sub }) {
+function KpiCard({ icon, label, value, color, sub, onClick, className }) {
   return (
-    <div className="kpi-card" style={{ borderLeft: `4px solid ${color}` }}>
+    <div 
+      className={`kpi-card ${className || ''}`} 
+      style={{ borderLeft: `4px solid ${color}`, cursor: onClick ? 'pointer' : 'default' }}
+      onClick={onClick}
+    >
       <div className="kpi-icon">{icon}</div>
       <div className="kpi-body">
         <div className="kpi-value" style={{ color }}>{value}</div>
@@ -20,6 +25,12 @@ function KpiCard({ icon, label, value, color, sub }) {
 export default function Dashboard({ onNewTask, onEditTask }) {
   const { allTasks } = useTaskContext();
   const [activeTab, setActiveTab] = useState('overview');
+  const [conflictModal, setConflictModal] = useState(false);
+
+  // Check for dependency conflicts
+  const { hasConflicts, conflicts } = useMemo(() => {
+    return checkDependencyConflicts(allTasks);
+  }, [allTasks]);
 
   const stats = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -121,6 +132,17 @@ export default function Dashboard({ onNewTask, onEditTask }) {
             <KpiCard icon="🔄" label="进行中" value={stats.inProgress} color="#3b82f6" />
             <KpiCard icon="✅" label="已完成" value={stats.done} color="#22c55e" />
             <KpiCard icon="⚠️" label="已逾期" value={stats.overdueTasks.length} color="#ef4444" sub={stats.overdueTasks.length > 0 ? '需要处理' : ''} />
+            {hasConflicts && (
+              <KpiCard 
+                icon="⚠️" 
+                label="依赖冲突" 
+                value={conflicts.length} 
+                color="#f59e0b" 
+                sub="点击查看"
+                onClick={() => setConflictModal(true)}
+                className="conflict-kpi"
+              />
+            )}
             <KpiCard icon="🔥" label="紧急任务" value={stats.q1Count} color="#ef4444" sub="重要且紧急" />
             <KpiCard icon="📅" label="今日到期" value={stats.todayDue.length} color="#f59e0b" />
           </div>
@@ -293,6 +315,36 @@ export default function Dashboard({ onNewTask, onEditTask }) {
 
       {activeTab === 'milestones' && (
         <MilestoneBoard onEditTask={onEditTask} />
+      )}
+
+      {/* Dependency Conflict Modal */}
+      {conflictModal && hasConflicts && (
+        <div className="dashboard-modal-overlay" onClick={() => setConflictModal(false)}>
+          <div className="dashboard-modal" onClick={e => e.stopPropagation()}>
+            <div className="dashboard-modal-header">
+              <h3>⚠️ 依赖冲突检测</h3>
+              <button className="modal-close" onClick={() => setConflictModal(false)}>×</button>
+            </div>
+            <div className="dashboard-modal-body">
+              <p>发现 {conflicts.length} 个依赖冲突：</p>
+              <ul className="conflict-list">
+                {conflicts.map((conflict, index) => (
+                  <li key={index} className={`conflict-item conflict-${conflict.type}`}>
+                    <span className="conflict-type">
+                      {conflict.type === 'circular' && '🔄 循环依赖'}
+                      {conflict.type === 'dangling' && '❌ 悬空依赖'}
+                      {conflict.type === 'time_conflict' && '⏰ 时间冲突'}
+                    </span>
+                    <span className="conflict-desc">{conflict.description}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="dashboard-modal-footer">
+              <button className="btn-primary" onClick={() => setConflictModal(false)}>关闭</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
