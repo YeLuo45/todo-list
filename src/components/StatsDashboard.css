@@ -2,7 +2,7 @@
   background: white;
   border-radius: 16px;
   width: 90%;
-  max-width: 640px;
+  max-width: 720px;
   max-height: 85vh;
   overflow: hidden;
   display: flex;
@@ -38,9 +38,54 @@
   color: #ef4444;
 }
 
+.stats-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+}
+
+.stats-tab {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.stats-tab:hover {
+  background: #e2e8f0;
+}
+
+.stats-tab.active {
+  background: #6366f1;
+  color: white;
+}
+
+.bottleneck-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #ef4444;
+  color: white;
+  font-size: 11px;
+  border-radius: 9px;
+  margin-left: 6px;
+}
+
 .stats-body {
   padding: 16px 20px;
   overflow-y: auto;
+  flex: 1;
 }
 
 .stat-cards-row {
@@ -107,12 +152,338 @@
   width: 100%;
 }
 
+/* BurndownChart section */
+.burndown-chart {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.burndown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.burndown-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.burndown-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.burndown-toggle button {
+  padding: 4px 10px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.burndown-toggle button.active {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+}
+
+.burndown-toggle button:hover:not(.active) {
+  background: #f1f5f9;
+}
+
+.burndown-svg {
+  width: 100%;
+  height: auto;
+  min-height: 200px;
+}
+
+/* Productivity Report */
+.report-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.report-tab-content {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.report-tab-content h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.productivity-report {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.report-summary {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.report-card {
+  background: white;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.report-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.report-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.report-growth {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.report-growth.positive {
+  color: #22c55e;
+}
+
+.report-growth.negative {
+  color: #ef4444;
+}
+
+/* Priority bars */
+.priority-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.priority-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.priority-label {
+  font-size: 12px;
+  font-weight: 600;
+  width: 30px;
+  color: #334155;
+}
+
+.priority-bar-track {
+  flex: 1;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.priority-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.priority-rate {
+  font-size: 11px;
+  color: #64748b;
+  width: 40px;
+  text-align: right;
+}
+
+/* Peak hours bars */
+.peak-hours-bars {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  height: 80px;
+}
+
+.peak-hours-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.peak-hours-fill {
+  width: 100%;
+  background: linear-gradient(to top, #6366f1, #8b5cf6);
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  transition: height 0.3s;
+}
+
+.peak-hours-label {
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* Tag cloud */
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-item {
+  padding: 4px 10px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  color: #334155;
+  transition: transform 0.2s;
+}
+
+.tag-item:hover {
+  transform: scale(1.05);
+}
+
+/* Bottlenecks section */
+.bottlenecks-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bottleneck-summary {
+  display: flex;
+  gap: 16px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.summary-danger {
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.summary-warning {
+  color: #f59e0b;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.bottleneck-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bottleneck-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: white;
+}
+
+.bottleneck-card.danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.bottleneck-card.warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.bottleneck-type {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+}
+
+.bottleneck-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.bottleneck-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bottleneck-desc {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.no-bottlenecks {
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 14px;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
 @media (max-width: 480px) {
+  .stats-modal {
+    width: 95%;
+  }
+
   .stat-cards-row {
     grid-template-columns: repeat(3, 1fr);
   }
 
   .stat-value {
     font-size: 22px;
+  }
+
+  .stats-tabs {
+    padding: 10px 12px;
+  }
+
+  .stats-tab {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .report-summary {
+    flex-direction: column;
+  }
+
+  .burndown-svg {
+    min-height: 180px;
   }
 }

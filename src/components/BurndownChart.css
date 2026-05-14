@@ -1,0 +1,68 @@
+.burndown-chart {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+}
+
+.burndown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.burndown-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.burndown-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.burndown-toggle button {
+  padding: 4px 10px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.burndown-toggle button.active {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+}
+
+.burndown-toggle button:hover:not(.active) {
+  background: #f1f5f9;
+}
+
+.burndown-svg {
+  width: 100%;
+  height: auto;
+  min-height: 200px;
+}
+
+@media (max-width: 480px) {
+  .burndown-chart {
+    padding: 10px;
+  }
+  
+  .burndown-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .burndown-svg {
+    min-height: 180px;
+  }
+}
