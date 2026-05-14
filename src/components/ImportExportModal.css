@@ -171,3 +171,22 @@
   color: var(--text-primary);
   font-size: 13px;
 }
+
+.nl-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nl-fields textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+}

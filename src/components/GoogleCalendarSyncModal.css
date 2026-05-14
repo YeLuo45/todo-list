@@ -1,0 +1,201 @@
+.gcal-sync-modal {
+  max-width: 520px;
+}
+
+.gcal-section {
+  margin-bottom: 16px;
+}
+
+.gcal-section h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.gcal-desc {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 8px;
+}
+
+.gcal-desc small {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+}
+
+.gcal-api-key-row {
+  display: flex;
+  gap: 8px;
+}
+
+.gcal-api-key-row input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.gcal-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 16px 0;
+}
+
+.gcal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gcal-select-all {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.gcal-select-all:hover {
+  background: #e2e8f0;
+}
+
+.gcal-task-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.gcal-task-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.gcal-task-item:last-child {
+  border-bottom: none;
+}
+
+.gcal-task-item:hover {
+  background: #f8fafc;
+}
+
+.gcal-task-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.gcal-priority {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+}
+
+.gcal-priority.P0 { background: #ef4444; }
+.gcal-priority.P1 { background: #f59e0b; }
+.gcal-priority.P2 { background: #9ca3b8; }
+
+.gcal-task-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #334155;
+}
+
+.gcal-task-date {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.gcal-empty {
+  text-align: center;
+  padding: 24px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.gcal-results {
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+.gcal-results.success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.gcal-results.success p {
+  margin: 0;
+  color: #166534;
+  font-size: 14px;
+}
+
+.gcal-results.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.gcal-results.error p {
+  margin: 0;
+  color: #dc2626;
+  font-size: 14px;
+}
+
+.gcal-error-list {
+  margin: 8px 0 0;
+  padding-left: 16px;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+.gcal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.gcal-actions .ie-btn {
+  padding: 8px 16px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.gcal-actions .ie-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.gcal-actions .ie-btn.primary {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+}
+
+.gcal-actions .ie-btn.primary:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.gcal-actions .ie-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

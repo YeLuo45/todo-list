@@ -12,6 +12,7 @@ import StatsDashboard from './components/StatsDashboard';
 import GanttChart from './components/GanttChart';
 import Dashboard from './components/Dashboard';
 import GistSyncModal from './components/GistSyncModal';
+import GoogleCalendarSyncModal from './components/GoogleCalendarSyncModal';
 import ProjectSidebar from './components/ProjectSidebar';
 import { useSync } from './hooks/useSync';
 import { useTheme } from './hooks/useTheme';
@@ -30,6 +31,7 @@ function AppContent() {
   const [showImportExport, setShowImportExport] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showGistSync, setShowGistSync] = useState(false);
+  const [showGoogleCalendarSync, setShowGoogleCalendarSync] = useState(false);
   const filterBarRef = useRef();
 
   const { theme, toggleTheme } = useTheme();
@@ -182,6 +184,9 @@ function AppContent() {
             <button className="toolbar-btn" onClick={() => setShowGistSync(true)}>
               ☁️ Gist同步
             </button>
+            <button className="toolbar-btn" onClick={() => setShowGoogleCalendarSync(true)}>
+              📅 日历同步
+            </button>
             <button className="toolbar-btn" onClick={handleNewTask}>
               ➕ 新建 (Ctrl+N)
             </button>
@@ -251,6 +256,13 @@ function AppContent() {
         <GistSyncModal
           tasks={allTasks}
           onClose={() => setShowGistSync(false)}
+        />
+      )}
+
+      {showGoogleCalendarSync && (
+        <GoogleCalendarSyncModal
+          tasks={allTasks}
+          onClose={() => setShowGoogleCalendarSync(false)}
         />
       )}
 

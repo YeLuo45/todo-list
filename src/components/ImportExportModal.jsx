@@ -1,15 +1,18 @@
 import { useState, useRef } from 'react';
 import { useImportExport } from '../hooks/useImportExport';
+import { importFromJSON } from '../utils/dataImporter';
 import './ImportExportModal.css';
 
 export default function ImportExportModal({ tasks, onImport, onClose }) {
-  const [mode, setMode] = useState('menu'); // menu | preview | importing | notion
+  const [mode, setMode] = useState('menu'); // menu | preview | importing | notion | notion-linear
   const [parsedTasks, setParsedTasks] = useState([]);
   const [fileType, setFileType] = useState('');
   const [error, setError] = useState('');
   const [notionDbId, setNotionDbId] = useState('');
   const [notionToken, setNotionToken] = useState('');
   const [notionLoading, setNotionLoading] = useState(false);
+  const [nlJsonInput, setNlJsonInput] = useState('');
+  const [nlPreview, setNlPreview] = useState(null);
   const fileInputRef = useRef();
   const { exportJSON, exportCSV, exportICal, exportEPUB, parseFile, importFromNotion } = useImportExport(tasks);
 
@@ -76,6 +79,36 @@ export default function ImportExportModal({ tasks, onImport, onClose }) {
     } finally {
       setNotionLoading(false);
     }
+  };
+
+  const handleNotionLinearImport = () => {
+    setError('');
+    setNlPreview(null);
+    if (!nlJsonInput.trim()) {
+      setError('请粘贴 Notion CSV 或 Linear JSON 数据');
+      return;
+    }
+    importFromJSON(nlJsonInput)
+      .then((result) => {
+        setParsedTasks(result.tasks);
+        setFileType(result.format === 'notion-csv' ? 'Notion CSV' : 'Linear JSON');
+        setNlPreview(result);
+        setMode('notion-linear-preview');
+      })
+      .catch((err) => {
+        setError(err.message);
+      });
+  };
+
+  const handleNlImportMerge = () => {
+    const merged = [...tasks, ...parsedTasks];
+    onImport(merged);
+    onClose();
+  };
+
+  const handleNlImportReplace = () => {
+    onImport(parsedTasks);
+    onClose();
   };
 
   return (
@@ -148,6 +181,25 @@ export default function ImportExportModal({ tasks, onImport, onClose }) {
             <div className="ie-divider" />
 
             <div className="ie-section">
+              <h4>📋 Notion / Linear 导入</h4>
+              <p className="ie-desc">粘贴 Notion CSV 导出或 Linear JSON 数据</p>
+              <div className="nl-fields">
+                <textarea
+                  placeholder="在此粘贴 Notion CSV 或 Linear JSON 数据..."
+                  value={nlJsonInput}
+                  onChange={(e) => setNlJsonInput(e.target.value)}
+                  rows={5}
+                />
+                {error && <p className="ie-error">{error}</p>}
+                <button className="ie-btn primary" onClick={handleNotionLinearImport}>
+                  🔍 解析数据
+                </button>
+              </div>
+            </div>
+
+            <div className="ie-divider" />
+
+            <div className="ie-section">
               <h4>CSV 格式说明</h4>
               <pre className="ie-format">
 title,content,tags,priority,status,dueDate
@@ -183,6 +235,33 @@ title,content,tags,priority,status,dueDate
               <button className="btn-cancel" onClick={() => setMode('menu')}>取消</button>
               <button className="ie-btn" onClick={handleImportMerge}>🔗 合并（追加）</button>
               <button className="ie-btn danger" onClick={handleImportReplace}>🔄 覆盖（清空后导入）</button>
+            </div>
+          </div>
+        )}
+
+        {mode === 'notion-linear-preview' && (
+          <div className="ie-preview">
+            <h4>导入预览</h4>
+            <p>文件类型：<strong>{fileType}</strong></p>
+            <p>将导入 <strong>{parsedTasks.length}</strong> 个任务：</p>
+            <ul className="ie-preview-list">
+              {parsedTasks.slice(0, 5).map((t, i) => (
+                <li key={i}>
+                  <span className={`ie-priority ${t.priority}`}>{t.priority}</span>
+                  {t.title}
+                  {t.dueDate && <span className="ie-tags"> 📅 {t.dueDate}</span>}
+                  {t.tags.length > 0 && <span className="ie-tags"> {t.tags.join(', ')}</span>}
+                </li>
+              ))}
+              {parsedTasks.length > 5 && <li>... 还有 {parsedTasks.length - 5} 项</li>}
+            </ul>
+
+            {error && <p className="ie-error">{error}</p>}
+
+            <div className="ie-actions">
+              <button className="btn-cancel" onClick={() => setMode('menu')}>取消</button>
+              <button className="ie-btn" onClick={handleNlImportMerge}>🔗 合并（追加）</button>
+              <button className="ie-btn danger" onClick={handleNlImportReplace}>🔄 覆盖（清空后导入）</button>
             </div>
           </div>
         )}

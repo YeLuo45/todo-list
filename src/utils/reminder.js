@@ -5,6 +5,15 @@ const isElectron = () => {
   return typeof window !== 'undefined' && window.electronAPI;
 };
 
+// Import slack notifier dynamically to avoid circular dependency
+let slackNotifier = null;
+const getSlackNotifier = () => {
+  if (!slackNotifier) {
+    slackNotifier = import('./slackNotifier').then(m => m).catch(() => null);
+  }
+  return slackNotifier;
+};
+
 /**
  * Get reminder urgency level for visual highlighting
  * @param {object} task
@@ -97,6 +106,12 @@ export function sendNotification(task, reason = 'due') {
   // Use Electron native notification if available
   if (isElectron() && window.electronAPI.showNotification) {
     window.electronAPI.showNotification({ title: '任务提醒', body });
+    // Also send Slack notification
+    getSlackNotifier().then(slack => {
+      if (slack && slack.getSlackWebhookUrl()) {
+        slack.sendSlackNotification(task, reason);
+      }
+    });
     return;
   }
 
@@ -104,6 +119,13 @@ export function sendNotification(task, reason = 'due') {
   if ('Notification' in window && Notification.permission === 'granted') {
     new Notification('任务提醒', { body, icon: '/vite.svg' });
   }
+
+  // Also send Slack notification for web
+  getSlackNotifier().then(slack => {
+    if (slack && slack.getSlackWebhookUrl()) {
+      slack.sendSlackNotification(task, reason);
+    }
+  });
 }
 
 export function startReminderLoop(tasks, markAsRead, checkInterval = CHECK_INTERVAL) {
