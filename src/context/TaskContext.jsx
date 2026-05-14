@@ -30,6 +30,7 @@ const STORAGE_KEY = 'hermes_todos_v2';
 const LEGACY_STORAGE_KEY = 'hermes-todo-tasks';
 const SCHEMA_VERSION_KEY = 'hermes-todo-schema-version';
 const CURRENT_SCHEMA_VERSION = 3;
+const MILESTONE_STORAGE_KEY = 'hermes_milestones_v1';
 
 // Data migration functions
 const migrations = {
@@ -133,6 +134,7 @@ const saveTasks = async (tasks) => {
 
 export function TaskProvider({ children }) {
   const [tasks, setTasks] = useState([]);
+  const [milestones, setMilestones] = useState([]);
   const [filterTags, setFilterTags] = useState([]); // multi-select tags
   const [filterProject, setFilterProject] = useState(null); // project ID filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -207,6 +209,25 @@ export function TaskProvider({ children }) {
       saveTasks(tasks);
     }
   }, [tasks, isLoading]);
+
+  // Load milestones
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(MILESTONE_STORAGE_KEY);
+      if (stored) {
+        setMilestones(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Failed to load milestones', e);
+    }
+  }, []);
+
+  // Save milestones
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem(MILESTONE_STORAGE_KEY, JSON.stringify(milestones));
+    }
+  }, [milestones, isLoading]);
 
   const createTask = useCallback((taskData) => {
     const now = new Date().toISOString();
@@ -428,6 +449,8 @@ export function TaskProvider({ children }) {
       value={{
         tasks: filteredTasks,
         allTasks: tasks,
+        milestones,
+        setMilestones,
         setTasks,
         filterTags,
         setFilterTags,

@@ -273,3 +273,93 @@
   background: rgba(34, 197, 94, 0.15);
   color: var(--color-success);
 }
+
+/* AI Priority Badge */
+.ai-priority-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  cursor: help;
+}
+
+/* AI Actions */
+.task-ai-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.btn-ai-breakdown {
+  padding: 6px 12px;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.btn-ai-breakdown:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-ai-breakdown:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-ai-breakdown.loading {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+
+.ai-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ai-error {
+  font-size: 12px;
+  color: var(--color-danger);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-goto-settings {
+  padding: 2px 8px;
+  border: 1px solid var(--color-danger);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-danger);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.btn-goto-settings:hover {
+  background: var(--color-danger);
+  color: white;
+}
+
+/* Subtask duration */
+.subtask-duration {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+  padding-left: 8px;
+}

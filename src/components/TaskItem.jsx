@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { getReminderUrgency } from '../utils/reminder';
 import { computeTaskScore, QUADRANT_LABELS, getQuadrant } from '../context/TaskContext';
+import { getAIPriorityScore } from '../utils/aiPriority';
+import { breakIntoSubtasks, getAPIToken } from '../utils/aiSubtask';
 import './TaskItem.css';
 
 const priorityColors = {
@@ -10,10 +13,16 @@ const priorityColors = {
 };
 
 export default function TaskItem({ task, onEdit }) {
-  const { updateTask, deleteTask, toggleTaskSelection, selectedTaskIds, isTaskBlocked } = useTaskContext();
+  const { updateTask, deleteTask, toggleTaskSelection, selectedTaskIds, isTaskBlocked, allTasks } = useTaskContext();
+
+  const [isAIBreaking, setIsAIBreaking] = useState(false);
+  const [aiError, setAiError] = useState(null);
 
   const isSelected = selectedTaskIds.has(task.id);
   const blocked = isTaskBlocked(task.id);
+
+  // Calculate AI priority
+  const aiPriority = task.dueDate ? getAIPriorityScore(task, allTasks) : null;
 
   const handleStatusChange = (e) => {
     if (blocked) return;
@@ -37,6 +46,36 @@ export default function TaskItem({ task, onEdit }) {
       st.id === subtaskId ? { ...st, done: !st.done } : st
     );
     updateTask(task.id, { subtasks });
+  };
+
+  const handleAIBreakdown = async () => {
+    const token = getAPIToken();
+    if (!token) {
+      setAiError('请先在设置中配置 AI Token');
+      return;
+    }
+
+    setIsAIBreaking(true);
+    setAiError(null);
+
+    try {
+      const subtasks = await breakIntoSubtasks(task, allTasks);
+      
+      // Merge with existing subtasks
+      const existingSubtasks = task.subtasks || [];
+      const newSubtasks = [...existingSubtasks, ...subtasks];
+      
+      updateTask(task.id, { subtasks: newSubtasks });
+    } catch (error) {
+      if (error.message === 'NO_TOKEN') {
+        setAiError('请先在设置中配置 AI Token');
+      } else {
+        setAiError(error.message);
+      }
+      console.error('AI Breakdown Error:', error);
+    } finally {
+      setIsAIBreaking(false);
+    }
   };
 
   const formatDate = (dateStr) => {
@@ -82,6 +121,19 @@ export default function TaskItem({ task, onEdit }) {
     blocked ? 'blocked' : '',
   ].filter(Boolean).join(' ');
 
+  // AI Priority label colors
+  const aiPriorityColors = {
+    high: '#22c55e',
+    medium: '#eab308',
+    low: '#ef4444',
+  };
+
+  const aiPriorityEmoji = {
+    high: '🟢',
+    medium: '🟡',
+    low: '🔴',
+  };
+
   return (
     <div className={cardClass}>
       <div className="task-main">
@@ -116,6 +168,16 @@ export default function TaskItem({ task, onEdit }) {
           >
             {task.priority}
           </span>
+          {/* AI Priority Label */}
+          {aiPriority && (
+            <span
+              className="ai-priority-badge"
+              style={{ backgroundColor: aiPriorityColors[aiPriority.label] }}
+              title={`AI 优先级: ${aiPriority.reason}`}
+            >
+              {aiPriorityEmoji[aiPriority.label]} AI {aiPriority.score}分
+            </span>
+          )}
         </div>
 
         {task.content && <p className="task-description">{task.content}</p>}
@@ -157,6 +219,39 @@ export default function TaskItem({ task, onEdit }) {
           )}
         </div>
 
+        {/* AI Breakdown Button */}
+        <div className="task-ai-actions">
+          <button
+            className={`btn-ai-breakdown ${isAIBreaking ? 'loading' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAIBreakdown();
+            }}
+            disabled={isAIBreaking || blocked}
+            title="AI 智能拆解子任务"
+          >
+            {isAIBreaking ? (
+              <>
+                <span className="ai-spinner">⏳</span>
+                AI 拆解中...
+              </>
+            ) : (
+              <>🧠 AI 拆解</>
+            )}
+          </button>
+          {aiError && (
+            <span className="ai-error" onClick={(e) => e.stopPropagation()}>
+              ⚠️ {aiError}
+              <button 
+                className="btn-goto-settings"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
+              >
+                去设置
+              </button>
+            </span>
+          )}
+        </div>
+
         {/* Inline subtask toggles */}
         {totalSubs > 0 && (
           <div className="task-subtasks-inline">
@@ -169,6 +264,9 @@ export default function TaskItem({ task, onEdit }) {
                   onClick={(e) => e.stopPropagation()}
                 />
                 <span>{st.title}</span>
+                {st.estimatedMinutes && (
+                  <span className="subtask-duration">{st.estimatedMinutes}分钟</span>
+                )}
               </label>
             ))}
           </div>

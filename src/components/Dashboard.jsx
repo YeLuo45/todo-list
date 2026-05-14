@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTaskContext, computeTaskScore, getQuadrant, QUADRANT_LABELS } from '../context/TaskContext';
 import { getReminderUrgency } from '../utils/reminder';
+import MilestoneBoard from './MilestoneBoard';
 import './Dashboard.css';
 
 function KpiCard({ icon, label, value, color, sub }) {
@@ -18,6 +19,7 @@ function KpiCard({ icon, label, value, color, sub }) {
 
 export default function Dashboard({ onNewTask, onEditTask }) {
   const { allTasks } = useTaskContext();
+  const [activeTab, setActiveTab] = useState('overview');
 
   const stats = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -89,132 +91,209 @@ export default function Dashboard({ onNewTask, onEditTask }) {
 
   return (
     <div className="dashboard">
-      {/* KPI Cards */}
-      <div className="dashboard-kpis">
-        <KpiCard icon="📋" label="总任务" value={stats.total} color="var(--color-primary)" />
-        <KpiCard icon="🔄" label="进行中" value={stats.inProgress} color="#3b82f6" />
-        <KpiCard icon="✅" label="已完成" value={stats.done} color="#22c55e" />
-        <KpiCard icon="⚠️" label="已逾期" value={stats.overdueTasks.length} color="#ef4444" sub={stats.overdueTasks.length > 0 ? '需要处理' : ''} />
-        <KpiCard icon="🔥" label="紧急任务" value={stats.q1Count} color="#ef4444" sub="重要且紧急" />
-        <KpiCard icon="📅" label="今日到期" value={stats.todayDue.length} color="#f59e0b" />
+      {/* Tab Navigation */}
+      <div className="dashboard-tabs">
+        <button 
+          className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          📊 概览
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'stats' ? 'active' : ''}`}
+          onClick={() => setActiveTab('stats')}
+        >
+          📈 统计
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'milestones' ? 'active' : ''}`}
+          onClick={() => setActiveTab('milestones')}
+        >
+          🎯 里程碑
+        </button>
       </div>
 
-      {/* Main grid */}
-      <div className="dashboard-grid">
-        {/* Left: Today + Soon */}
-        <div className="dashboard-col">
-          <div className="dash-section overdue-section">
-            <h3>⚠️ 已逾期 / 今日到期 ({todayTasks.length})</h3>
-            {todayTasks.length === 0 ? (
-              <p className="dash-empty">🎉 暂无逾期任务</p>
-            ) : (
-              <div className="dash-task-list">
-                {todayTasks.map((t) => (
-                  <div key={t.id} className={`dash-task overdue ${urgency(t) === 'overdue' ? 'is-overdue' : ''}`}
-                    onClick={() => onEditTask(t)}>
-                    <div className="dash-task-left">
-                      <span className="dash-task-title">{t.title}</span>
-                      <span className="dash-task-meta">
-                        {t.priority} {t.dueDate && `📅 ${t.dueDate}`}
-                      </span>
-                    </div>
-                    <div className="dash-task-right">
-                      <span
-                        className="dash-score"
-                        style={{ backgroundColor: QUADRANT_LABELS[getQuadrant(t)]?.color }}
-                      >
-                        {computeTaskScore(t)}分
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+      {activeTab === 'overview' && (
+        <>
+          {/* KPI Cards */}
+          <div className="dashboard-kpis">
+            <KpiCard icon="📋" label="总任务" value={stats.total} color="var(--color-primary)" />
+            <KpiCard icon="🔄" label="进行中" value={stats.inProgress} color="#3b82f6" />
+            <KpiCard icon="✅" label="已完成" value={stats.done} color="#22c55e" />
+            <KpiCard icon="⚠️" label="已逾期" value={stats.overdueTasks.length} color="#ef4444" sub={stats.overdueTasks.length > 0 ? '需要处理' : ''} />
+            <KpiCard icon="🔥" label="紧急任务" value={stats.q1Count} color="#ef4444" sub="重要且紧急" />
+            <KpiCard icon="📅" label="今日到期" value={stats.todayDue.length} color="#f59e0b" />
           </div>
 
-          <div className="dash-section">
-            <h3>📆 即将到期 (3天内, {soonTasks.length})</h3>
-            {soonTasks.length === 0 ? (
-              <p className="dash-empty">近期无到期任务</p>
-            ) : (
-              <div className="dash-task-list">
-                {soonTasks.map((t) => (
-                  <div key={t.id} className="dash-task" onClick={() => onEditTask(t)}>
-                    <div className="dash-task-left">
-                      <span className="dash-task-title">{t.title}</span>
-                      <span className="dash-task-meta">
-                        {t.priority} {t.dueDate && `📅 ${t.dueDate}`}
-                      </span>
-                    </div>
-                    <div className="dash-task-right">
-                      <span
-                        className="dash-score"
-                        style={{ backgroundColor: QUADRANT_LABELS[getQuadrant(t)]?.color }}
-                      >
-                        {computeTaskScore(t)}分
-                      </span>
-                    </div>
+          {/* Main grid */}
+          <div className="dashboard-grid">
+            {/* Left: Today + Soon */}
+            <div className="dashboard-col">
+              <div className="dash-section overdue-section">
+                <h3>⚠️ 已逾期 / 今日到期 ({todayTasks.length})</h3>
+                {todayTasks.length === 0 ? (
+                  <p className="dash-empty">🎉 暂无逾期任务</p>
+                ) : (
+                  <div className="dash-task-list">
+                    {todayTasks.map((t) => (
+                      <div key={t.id} className={`dash-task overdue ${urgency(t) === 'overdue' ? 'is-overdue' : ''}`}
+                        onClick={() => onEditTask(t)}>
+                        <div className="dash-task-left">
+                          <span className="dash-task-title">{t.title}</span>
+                          <span className="dash-task-meta">
+                            {t.priority} {t.dueDate && `📅 ${t.dueDate}`}
+                          </span>
+                        </div>
+                        <div className="dash-task-right">
+                          <span
+                            className="dash-score"
+                            style={{ backgroundColor: QUADRANT_LABELS[getQuadrant(t)]?.color }}
+                          >
+                            {computeTaskScore(t)}分
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Right: Quick actions + Quadrant + Recent */}
-        <div className="dashboard-col">
-          <div className="dash-section">
-            <h3>🚀 快捷操作</h3>
-            <div className="quick-actions">
-              <button className="quick-action-btn primary" onClick={onNewTask}>
-                ➕ 新建任务
-              </button>
-              <button className="quick-action-btn" onClick={() => window.dispatchEvent(new CustomEvent('switch-view', { detail: 'kanban' }))}>
-                📊 看板视图
-              </button>
-              <button className="quick-action-btn" onClick={() => window.dispatchEvent(new CustomEvent('switch-view', { detail: 'gantt' }))}>
-                📈 甘特图
-              </button>
-              <button className="quick-action-btn" onClick={() => window.dispatchEvent(new CustomEvent('switch-view', { detail: 'stats' }))}>
-                📊 统计面板
-              </button>
+              <div className="dash-section">
+                <h3>📆 即将到期 (3天内, {soonTasks.length})</h3>
+                {soonTasks.length === 0 ? (
+                  <p className="dash-empty">近期无到期任务</p>
+                ) : (
+                  <div className="dash-task-list">
+                    {soonTasks.map((t) => (
+                      <div key={t.id} className="dash-task" onClick={() => onEditTask(t)}>
+                        <div className="dash-task-left">
+                          <span className="dash-task-title">{t.title}</span>
+                          <span className="dash-task-meta">
+                            {t.priority} {t.dueDate && `📅 ${t.dueDate}`}
+                          </span>
+                        </div>
+                        <div className="dash-task-right">
+                          <span
+                            className="dash-score"
+                            style={{ backgroundColor: QUADRANT_LABELS[getQuadrant(t)]?.color }}
+                          >
+                            {computeTaskScore(t)}分
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Quick actions + Quadrant + Recent */}
+            <div className="dashboard-col">
+              <div className="dash-section">
+                <h3>🚀 快捷操作</h3>
+                <div className="quick-actions">
+                  <button className="quick-action-btn primary" onClick={onNewTask}>
+                    ➕ 新建任务
+                  </button>
+                  <button className="quick-action-btn" onClick={() => window.dispatchEvent(new CustomEvent('switch-view', { detail: 'kanban' }))}>
+                    📊 看板视图
+                  </button>
+                  <button className="quick-action-btn" onClick={() => window.dispatchEvent(new CustomEvent('switch-view', { detail: 'gantt' }))}>
+                    📈 甘特图
+                  </button>
+                  <button className="quick-action-btn" onClick={() => window.dispatchEvent(new CustomEvent('switch-view', { detail: 'stats' }))}>
+                    📊 统计面板
+                  </button>
+                </div>
+              </div>
+
+              <div className="dash-section">
+                <h3>🎯 四象限分布</h3>
+                <div className="quadrant-grid">
+                  {quadrantBreakdown.map(({ q, label, icon, color, count }) => (
+                    <div key={q} className="quadrant-cell" style={{ borderTop: `3px solid ${color}` }}>
+                      <div className="quadrant-header">
+                        <span>{icon}</span>
+                        <span className="quadrant-label">{label}</span>
+                      </div>
+                      <div className="quadrant-count" style={{ color }}>{count}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="dash-section">
+                <h3>✨ 最近完成 ({recentDone.length})</h3>
+                {recentDone.length === 0 ? (
+                  <p className="dash-empty">暂无已完成任务</p>
+                ) : (
+                  <div className="dash-task-list">
+                    {recentDone.map((t) => (
+                      <div key={t.id} className="dash-task done-task">
+                        <span className="dash-task-title">{t.title}</span>
+                        <span className="dash-task-meta">
+                          {t.priority} {t.endTime && `✅ ${new Date(t.endTime).toLocaleDateString()}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'stats' && (
+        <div className="stats-tab">
+          <div className="stats-section">
+            <h3>📊 任务统计</h3>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-label">总任务数</div>
+                <div className="stat-value">{stats.total}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">已完成</div>
+                <div className="stat-value" style={{ color: '#22c55e' }}>{stats.done}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">进行中</div>
+                <div className="stat-value" style={{ color: '#3b82f6' }}>{stats.inProgress}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">待处理</div>
+                <div className="stat-value" style={{ color: '#f59e0b' }}>{stats.todo}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">已逾期</div>
+                <div className="stat-value" style={{ color: '#ef4444' }}>{stats.overdueTasks.length}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-label">紧急任务 (Q1)</div>
+                <div className="stat-value" style={{ color: '#ef4444' }}>{stats.q1Count}</div>
+              </div>
             </div>
           </div>
 
-          <div className="dash-section">
-            <h3>🎯 四象限分布</h3>
-            <div className="quadrant-grid">
+          <div className="stats-section">
+            <h3>🎯 四象限详情</h3>
+            <div className="quadrant-list">
               {quadrantBreakdown.map(({ q, label, icon, color, count }) => (
-                <div key={q} className="quadrant-cell" style={{ borderTop: `3px solid ${color}` }}>
-                  <div className="quadrant-header">
-                    <span>{icon}</span>
-                    <span className="quadrant-label">{label}</span>
-                  </div>
-                  <div className="quadrant-count" style={{ color }}>{count}</div>
+                <div key={q} className="quadrant-row" style={{ borderLeft: `4px solid ${color}` }}>
+                  <span className="quadrant-icon">{icon}</span>
+                  <span className="quadrant-name">{label}</span>
+                  <span className="quadrant-num" style={{ color }}>{count} 个任务</span>
                 </div>
               ))}
             </div>
           </div>
-
-          <div className="dash-section">
-            <h3>✨ 最近完成 ({recentDone.length})</h3>
-            {recentDone.length === 0 ? (
-              <p className="dash-empty">暂无已完成任务</p>
-            ) : (
-              <div className="dash-task-list">
-                {recentDone.map((t) => (
-                  <div key={t.id} className="dash-task done-task">
-                    <span className="dash-task-title">{t.title}</span>
-                    <span className="dash-task-meta">
-                      {t.priority} {t.endTime && `✅ ${new Date(t.endTime).toLocaleDateString()}`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
-      </div>
+      )}
+
+      {activeTab === 'milestones' && (
+        <MilestoneBoard onEditTask={onEditTask} />
+      )}
     </div>
   );
 }
