@@ -149,27 +149,136 @@ export function generateICal(tasks) {
     if (!task.dueDate) continue; // iCal events need a date
 
     const uid = task.id.includes('@') ? task.id : `${task.id}@hermes-todolist`;
-    const dtstart = task.dueDate.replace(/-/g, '');
     const summary = escapeICal(task.title);
     const description = escapeICal(task.content || '');
     const categories = (task.tags || []).map(escapeICal).join(',');
 
-    lines.push('BEGIN:VEVENT');
-    lines.push(`UID:${uid}`);
-    lines.push(`DTSTAMP:${formatICalDate(new Date())}`);
-    lines.push(`DTSTART;VALUE=DATE:${dtstart}`);
-    lines.push(`SUMMARY:${summary}`);
-    if (description) lines.push(`DESCRIPTION:${description}`);
-    if (categories) lines.push(`CATEGORIES:${categories}`);
-    if (task.priority) {
-      const MAP = { P0: '1', P1: '5', P2: '9' };
-      lines.push(`PRIORITY:${MAP[task.priority] || '5'}`);
+    // 处理循环任务 - 生成未来12周的实例
+    if (task.recurrence && task.isRecurring) {
+      const instances = generateRecurringInstances(task, 12);
+      for (const instance of instances) {
+        lines.push('BEGIN:VEVENT');
+        lines.push(`UID:${instance.uid}`);
+        lines.push(`DTSTAMP:${formatICalDate(new Date())}`);
+        lines.push(`DTSTART;VALUE=DATE:${instance.dueDate.replace(/-/g, '')}`);
+        lines.push(`SUMMARY:${summary}`);
+        if (description) lines.push(`DESCRIPTION:${description}`);
+        if (categories) lines.push(`CATEGORIES:${categories}`);
+        if (task.priority) {
+          const MAP = { P0: '1', P1: '5', P2: '9' };
+          lines.push(`PRIORITY:${MAP[task.priority] || '5'}`);
+        }
+        // 添加 RRULE
+        if (instance.rrule) {
+          lines.push(`RRULE:${instance.rrule}`);
+        }
+        lines.push('END:VEVENT');
+      }
+    } else {
+      // 普通任务
+      lines.push('BEGIN:VEVENT');
+      lines.push(`UID:${uid}`);
+      lines.push(`DTSTAMP:${formatICalDate(new Date())}`);
+      lines.push(`DTSTART;VALUE=DATE:${task.dueDate.replace(/-/g, '')}`);
+      lines.push(`SUMMARY:${summary}`);
+      if (description) lines.push(`DESCRIPTION:${description}`);
+      if (categories) lines.push(`CATEGORIES:${categories}`);
+      if (task.priority) {
+        const MAP = { P0: '1', P1: '5', P2: '9' };
+        lines.push(`PRIORITY:${MAP[task.priority] || '5'}`);
+      }
+      lines.push('END:VEVENT');
     }
-    lines.push('END:VEVENT');
   }
 
   lines.push('END:VCALENDAR');
   return lines.join('\r\n');
+}
+
+/**
+ * 生成循环任务的多个实例（未来12周）
+ */
+function generateRecurringInstances(task, weeks = 12) {
+  const instances = [];
+  const recurrence = task.recurrence || 'weekly';
+  const baseDate = new Date(task.dueDate);
+  
+  // 计算每种循环的间隔
+  let interval = 1;
+  let freq = 'WEEKLY';
+  
+  switch (recurrence) {
+    case 'daily':
+      freq = 'DAILY';
+      interval = 1;
+      break;
+    case 'weekly':
+      freq = 'WEEKLY';
+      interval = 1;
+      break;
+    case 'biweekly':
+      freq = 'WEEKLY';
+      interval = 2;
+      break;
+    case 'monthly':
+      freq = 'MONTHLY';
+      interval = 1;
+      break;
+    case 'weekdays':
+      // 工作日：生成每天但标记为工作日（周一到周五）
+      freq = 'DAILY';
+      interval = 1;
+      break;
+    default:
+      freq = 'WEEKLY';
+      interval = 1;
+  }
+
+  // 生成未来 weeks 周的实例
+  const startDate = new Date(baseDate);
+  
+  if (recurrence === 'weekdays') {
+    // 工作日：生成周一到周五的实例
+    for (let w = 0; w < weeks; w++) {
+      for (let day = 1; day <= 5; day++) {
+        const instanceDate = new Date(startDate);
+        instanceDate.setDate(startDate.getDate() + (w * 7) + (day - startDate.getDay() + 7) % 7);
+        
+        // 只添加未来的日期
+        if (instanceDate >= new Date()) {
+          instances.push({
+            uid: `${task.id}-${instanceDate.toISOString().split('T')[0]}@hermes-todolist`,
+            dueDate: instanceDate.toISOString().split('T')[0],
+            rrule: null // 已展开，不需要 RRULE
+          });
+        }
+      }
+    }
+  } else {
+    // 其他循环规则：每 interval 周/天/月 生成一个实例
+    for (let i = 0; i < weeks; i++) {
+      const instanceDate = new Date(baseDate);
+      
+      if (freq === 'DAILY') {
+        instanceDate.setDate(baseDate.getDate() + (i * interval));
+      } else if (freq === 'WEEKLY') {
+        instanceDate.setDate(baseDate.getDate() + (i * 7 * interval));
+      } else if (freq === 'MONTHLY') {
+        instanceDate.setMonth(baseDate.getMonth() + (i * interval));
+      }
+      
+      // 只添加未来的日期
+      if (instanceDate >= new Date()) {
+        instances.push({
+          uid: `${task.id}-${instanceDate.toISOString().split('T')[0]}@hermes-todolist`,
+          dueDate: instanceDate.toISOString().split('T')[0],
+          rrule: `FREQ=${freq};INTERVAL=${interval};COUNT=${weeks}`
+        });
+      }
+    }
+  }
+  
+  return instances;
 }
 
 function escapeICal(str) {

@@ -1,5 +1,5 @@
 .import-export-modal {
-  max-width: 480px;
+  max-width: 520px;
 }
 
 .ie-menu {
@@ -23,10 +23,12 @@
 .ie-buttons {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .ie-btn {
   flex: 1;
+  min-width: 100px;
   padding: 10px 16px;
   background: #f1f5f9;
   color: #334155;
@@ -59,6 +61,11 @@
 
 .ie-btn.danger:hover {
   background: #fee2e2;
+}
+
+.ie-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .ie-divider {
@@ -189,4 +196,185 @@
   font-family: inherit;
   resize: vertical;
   min-height: 80px;
+}
+
+/* PDF Export Styles */
+.pdf-scope-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.pdf-scope-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.pdf-scope-option input[type="radio"] {
+  cursor: pointer;
+}
+
+.pdf-project-select {
+  margin: 12px 0;
+}
+
+.pdf-project-select select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+/* Template Styles */
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.template-item {
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.template-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.template-item.selected {
+  background: #e0e7ff;
+  border-color: #6366f1;
+}
+
+.template-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.template-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.template-format {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: #6366f1;
+  color: white;
+  border-radius: 4px;
+}
+
+.template-desc {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.template-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.template-field-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 4px;
+}
+
+.template-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* Template Form Styles */
+.template-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 12px 0;
+}
+
+.template-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.template-form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.template-form-field input[type="text"] {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.template-format-options {
+  display: flex;
+  gap: 16px;
+}
+
+.template-format-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.template-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.template-field-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: normal;
+  cursor: pointer;
+  padding: 6px 8px;
+  background: #f8fafc;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.template-field-checkbox:hover {
+  background: #e2e8f0;
+}
+
+.template-field-checkbox input[type="checkbox"] {
+  cursor: pointer;
 }
