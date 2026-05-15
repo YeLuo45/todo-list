@@ -1,5 +1,7 @@
 .task-list {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .task-list-header {
@@ -121,4 +123,14 @@
 .task-items {
   display: flex;
   flex-direction: column;
+  flex: 1;
+}
+
+.virtual-scroll-container {
+  flex: 1;
+  overflow: hidden;
+}
+
+.virtual-row {
+  padding: 4px 0;
 }

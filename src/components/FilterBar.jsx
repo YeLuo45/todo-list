@@ -1,8 +1,69 @@
-import { forwardRef, useImperativeHandle, useRef, useState, useMemo } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState, useMemo, useEffect, useCallback } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { getTagGroups, getTagColors } from '../utils/projects';
 import './FilterBar.css';
 import './TagBatchRenameModal.css';
+
+// Web Worker for search
+let searchWorker = null;
+let searchRequestId = 0;
+let pendingSearch = null;
+
+function initSearchWorker() {
+  if (searchWorker) return searchWorker;
+  try {
+    searchWorker = new Worker(
+      new URL('../workers/searchWorker.js', import.meta.url),
+      { type: 'module' }
+    );
+    searchWorker.onmessage = (e) => {
+      const { type, requestId, payload } = e.data;
+      if (type === 'searchResult' && pendingSearch && pendingSearch.requestId === requestId) {
+        pendingSearch.resolve(payload);
+        pendingSearch = null;
+      }
+    };
+    searchWorker.onerror = (e) => {
+      console.error('[FilterBar] Search worker error:', e);
+    };
+  } catch (e) {
+    console.error('[FilterBar] Failed to init search worker:', e);
+  }
+  return searchWorker;
+}
+
+function searchWithWorker(tasks, query) {
+  return new Promise((resolve) => {
+    const worker = initSearchWorker();
+    if (!worker) {
+      // Fallback to sync search
+      resolve({ matchedIds: tasks.map(t => t.id), count: tasks.length });
+      return;
+    }
+    
+    const requestId = ++searchRequestId;
+    pendingSearch = { requestId, resolve };
+    worker.postMessage({ type: 'search', payload: { tasks, query }, requestId });
+    
+    // Timeout fallback
+    setTimeout(() => {
+      if (pendingSearch && pendingSearch.requestId === requestId) {
+        pendingSearch.resolve({ matchedIds: tasks.map(t => t.id), count: tasks.length });
+        pendingSearch = null;
+      }
+    }, 1000);
+  });
+}
+
+// Debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 const FilterBar = forwardRef(function FilterBar({ resultCount, totalCount }, ref) {
   const {
@@ -19,6 +80,7 @@ const FilterBar = forwardRef(function FilterBar({ resultCount, totalCount }, ref
     setDateFilter,
     allTasks,
     updateTask,
+    setSearchResult,
   } = useTaskContext();
 
   const inputRef = useRef();
@@ -26,6 +88,28 @@ const FilterBar = forwardRef(function FilterBar({ resultCount, totalCount }, ref
   const [selectedTags, setSelectedTags] = useState(new Set()); // multi-select for batch ops
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
+
+  // Debounced search query (300ms)
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // Worker-based search when debounced query changes
+  useEffect(() => {
+    if (!debouncedSearchQuery) {
+      setSearchResult(null); // Clear search result when query is empty
+      return;
+    }
+
+    let cancelled = false;
+    searchWithWorker(allTasks, debouncedSearchQuery).then((result) => {
+      if (!cancelled) {
+        setSearchResult(result.matchedIds);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedSearchQuery, allTasks, setSearchResult]);
 
   useImperativeHandle(ref, () => ({
     focus: () => inputRef.current?.focus(),

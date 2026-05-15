@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { fuzzySearch } from '../utils/search';
+import { loadTasks, saveTasks } from '../utils/storageOptimizer';
 
 const TaskContext = createContext(null);
 
@@ -26,8 +26,6 @@ export const QUADRANT_LABELS = {
   Q4: { label: '不重要不紧急', color: '#9ca3af', icon: '⚪', desc: '可忽略' },
 };
 
-const STORAGE_KEY = 'hermes_todos_v2';
-const LEGACY_STORAGE_KEY = 'hermes-todo-tasks';
 const SCHEMA_VERSION_KEY = 'hermes-todo-schema-version';
 const CURRENT_SCHEMA_VERSION = 3;
 const MILESTONE_STORAGE_KEY = 'hermes_milestones_v1';
@@ -73,71 +71,13 @@ const isElectron = () => {
   return typeof window !== 'undefined' && window.electronAPI;
 };
 
-// Load tasks from Electron file storage or localStorage
-const loadTasks = async () => {
-  if (isElectron()) {
-    try {
-      const data = await window.electronAPI.loadTasks();
-      const tasks = data.tasks || [];
-      return migrateData(tasks);
-    } catch (e) {
-      console.error('Failed to load tasks from Electron storage', e);
-      return [];
-    }
-  } else {
-    try {
-      // Check new storage key first
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const tasks = JSON.parse(stored);
-        return migrateData(tasks);
-      }
-      // Fallback to legacy storage key and migrate
-      const legacyStored = localStorage.getItem(LEGACY_STORAGE_KEY);
-      if (legacyStored) {
-        const tasks = JSON.parse(legacyStored);
-        const migrated = migrateData(tasks);
-        // Save to new storage key
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-        // Clear legacy
-        localStorage.removeItem(LEGACY_STORAGE_KEY);
-        console.log('[TaskContext] Migrated legacy data to hermes_todos_v2');
-        return migrated;
-      }
-    } catch (e) {
-      console.error('Failed to load tasks from localStorage', e);
-    }
-    return [];
-  }
-};
-
-// Save tasks to Electron file storage or localStorage
-const saveTasks = async (tasks) => {
-  if (isElectron()) {
-    try {
-      await window.electronAPI.saveTasks({ tasks });
-      return true;
-    } catch (e) {
-      console.error('Failed to save tasks to Electron storage', e);
-      return false;
-    }
-  } else {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-      return true;
-    } catch (e) {
-      console.error('Failed to save tasks to localStorage', e);
-      return false;
-    }
-  }
-};
-
 export function TaskProvider({ children }) {
   const [tasks, setTasks] = useState([]);
   const [milestones, setMilestones] = useState([]);
   const [filterTags, setFilterTags] = useState([]); // multi-select tags
   const [filterProject, setFilterProject] = useState(null); // project ID filter
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResult, setSearchResult] = useState(null); // null = no search, array of matched IDs
   const [sortBy, setSortBy] = useState('createdAt');
   const [isLoading, setIsLoading] = useState(true);
   const [hideCompleted, setHideCompleted] = useState(false);
@@ -417,11 +357,8 @@ export function TaskProvider({ children }) {
       if (filterTags.length > 0 && !task.tags.some(tag => filterTags.includes(tag))) return false;
       // Project filter
       if (filterProject && task.projectId !== filterProject) return false;
-      // Search filter: fuzzy search in title + content + tags
-      if (searchQuery) {
-        const matched = fuzzySearch([task], searchQuery);
-        if (matched.length === 0) return false;
-      }
+      // Search filter: use worker-based search result
+      if (searchResult !== null && !searchResult.includes(task.id)) return false;
       return true;
     })
     .sort((a, b) => {
@@ -458,6 +395,8 @@ export function TaskProvider({ children }) {
         setFilterProject,
         searchQuery,
         setSearchQuery,
+        searchResult,
+        setSearchResult,
         sortBy,
         setSortBy,
         hideCompleted,

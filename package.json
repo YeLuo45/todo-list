@@ -19,6 +19,7 @@
     "jspdf": "^2.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-window": "^1.8.11",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

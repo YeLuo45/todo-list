@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
+import { FixedSizeList as List } from 'react-window';
 import { useTaskContext } from '../context/TaskContext';
 import TaskItem from './TaskItem';
 import TaskForm from './TaskForm';
 import './TaskList.css';
+
+const ITEM_HEIGHT = 120; // Estimated height per task item
+const OVERSCAN_COUNT = 5; // Extra items to render outside visible area
 
 export default function TaskList() {
   const { tasks, selectedTaskIds, toggleTaskSelection, selectAllTasks, clearSelection, batchDeleteTasks, batchUpdateTasks, getAllTags } = useTaskContext();
@@ -10,6 +14,8 @@ export default function TaskList() {
   const [editingTask, setEditingTask] = useState(null);
   const [batchTag, setBatchTag] = useState('');
   const [showBatchTagInput, setShowBatchTagInput] = useState(false);
+  const listContainerRef = useRef(null);
+  const [listHeight, setListHeight] = useState(500);
 
   const hasSelection = selectedTaskIds.size > 0;
   const allSelected = tasks.length > 0 && selectedTaskIds.size === tasks.length;
@@ -64,6 +70,35 @@ export default function TaskList() {
       }
     });
   };
+
+  // Calculate list height based on container
+  const updateListHeight = useCallback(() => {
+    if (listContainerRef.current) {
+      const rect = listContainerRef.current.getBoundingClientRect();
+      const availableHeight = window.innerHeight - rect.top - 40;
+      setListHeight(Math.max(300, availableHeight));
+    }
+  }, []);
+
+  // Update list height on mount and resize
+  useState(() => {
+    updateListHeight();
+    window.addEventListener('resize', updateListHeight);
+    return () => window.removeEventListener('resize', updateListHeight);
+  });
+
+  // Virtual row renderer
+  const Row = useCallback(({ index, style }) => {
+    const task = tasks[index];
+    return (
+      <div style={style} className="virtual-row">
+        <TaskItem key={task.id} task={task} onEdit={handleEdit} />
+      </div>
+    );
+  }, [tasks, handleEdit]);
+
+  // Use virtual list for 50+ tasks
+  const useVirtualList = tasks.length > 50;
 
   return (
     <div className="task-list">
@@ -137,6 +172,18 @@ export default function TaskList() {
       {tasks.length === 0 ? (
         <div className="empty-state">
           <p>暂无任务，创建一个开始吧！</p>
+        </div>
+      ) : useVirtualList ? (
+        <div className="task-items virtual-scroll-container" ref={listContainerRef}>
+          <List
+            height={listHeight}
+            itemCount={tasks.length}
+            itemSize={ITEM_HEIGHT}
+            width="100%"
+            overscanCount={OVERSCAN_COUNT}
+          >
+            {Row}
+          </List>
         </div>
       ) : (
         <div className="task-items">
