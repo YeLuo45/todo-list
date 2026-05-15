@@ -14,12 +14,15 @@
   border-bottom: 1px solid var(--border-color);
   font-size: 14px;
   color: var(--text-primary);
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .gantt-scroll {
   flex: 1;
   overflow: auto;
   position: relative;
+  -webkit-overflow-scrolling: touch;
 }
 
 .gantt-header {
@@ -266,4 +269,90 @@
   color: var(--text-muted);
   font-size: 11px;
   margin-top: 2px;
+}
+
+/* ===== Mobile Responsive (768px) ===== */
+@media (max-width: 768px) {
+  .gantt-header-bar {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .gantt-label-col {
+    width: 140px;
+    min-width: 140px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .gantt-group-label {
+    width: 140px;
+    min-width: 140px;
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .gantt-day-header {
+    padding: 6px 1px;
+    font-size: 10px;
+  }
+
+  .gantt-bar-label {
+    font-size: 10px;
+  }
+
+  .gantt-task-bar {
+    height: 26px;
+    top: 8px;
+  }
+
+  .gantt-row {
+    height: 40px;
+  }
+}
+
+/* ===== Small Mobile (480px) ===== */
+@media (max-width: 480px) {
+  .gantt-header-bar {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .gantt-group-btn {
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+
+  .gantt-label-col {
+    width: 100px;
+    min-width: 100px;
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+
+  .gantt-group-label {
+    width: 100px;
+    min-width: 100px;
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  .gantt-day-header {
+    padding: 5px 1px;
+    font-size: 9px;
+  }
+
+  .gantt-task-bar {
+    height: 22px;
+    top: 8px;
+  }
+
+  .gantt-bar-handle {
+    width: 5px;
+  }
+
+  .gantt-empty {
+    padding: 24px;
+    font-size: 12px;
+  }
 }

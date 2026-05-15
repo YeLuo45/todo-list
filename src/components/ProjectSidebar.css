@@ -294,3 +294,68 @@
   flex-direction: column;
   gap: 8px;
 }
+
+/* ===== Mobile Drawer Styles (768px) ===== */
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 900;
+  }
+
+  .sidebar-overlay.open {
+    display: block;
+  }
+
+  .project-sidebar {
+    position: fixed;
+    left: -220px;
+    top: 0;
+    bottom: 0;
+    width: 220px;
+    max-width: 80vw;
+    z-index: 950;
+    transition: left 0.3s ease;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .project-sidebar.mobile-open {
+    left: 0;
+  }
+
+  .project-sidebar.collapsed {
+    left: -36px;
+    width: 36px;
+  }
+
+  .sidebar-header {
+    padding: 12px 10px;
+  }
+
+  .sidebar-project-item {
+    padding: 8px 12px;
+  }
+
+  .project-name {
+    font-size: 13px;
+  }
+}
+
+/* ===== Small Mobile (480px) ===== */
+@media (max-width: 480px) {
+  .project-sidebar {
+    width: 200px;
+    max-width: 85vw;
+  }
+
+  .sidebar-header {
+    padding: 10px 8px;
+  }
+
+  .sidebar-project-item {
+    padding: 7px 10px;
+    gap: 5px;
+  }
+}

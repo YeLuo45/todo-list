@@ -3,7 +3,7 @@ import { useTaskContext } from '../context/TaskContext';
 import { getProjectTree, createProject, updateProject, deleteProject, getAllProjects } from '../utils/projects';
 import './ProjectSidebar.css';
 
-export default function ProjectSidebar() {
+export default function ProjectSidebar({ isMobileOpen, onMobileClose }) {
   const [collapsed, setCollapsed] = useState(false);
   const [showManage, setShowManage] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -23,9 +23,14 @@ export default function ProjectSidebar() {
     return counts;
   }, [allTasks]);
 
+  const handleSelectProject = (projectId) => {
+    setFilterProject(projectId);
+    if (onMobileClose) onMobileClose();
+  };
+
   if (collapsed) {
     return (
-      <div className="project-sidebar collapsed">
+      <div className={`project-sidebar collapsed ${isMobileOpen ? 'mobile-open' : ''}`}>
         <button className="sidebar-toggle" onClick={() => setCollapsed(false)} title="展开项目">▶</button>
         <button className="sidebar-manage-btn" onClick={() => { setCollapsed(false); setShowManage(true); }} title="管理项目">⚙️</button>
       </div>
@@ -33,39 +38,49 @@ export default function ProjectSidebar() {
   }
 
   return (
-    <div className="project-sidebar">
-      <div className="sidebar-header">
-        <span>📁 项目</span>
-        <div className="sidebar-header-btns">
-          <button className="sidebar-manage-btn" onClick={() => setShowManage(true)} title="管理项目">⚙️</button>
-          <button className="sidebar-toggle" onClick={() => setCollapsed(true)} title="收起">◀</button>
-        </div>
-      </div>
-
-      <div className="sidebar-projects">
-        <div
-          className={`sidebar-project-item ${!filterProject ? 'active' : ''}`}
-          onClick={() => setFilterProject(null)}
-        >
-          <span className="project-dot" style={{ background: '#888' }}>●</span>
-          <span className="project-name">全部任务</span>
-        </div>
-
-        <ProjectTree
-          nodes={tree}
-          filterProject={filterProject}
-          setFilterProject={setFilterProject}
-          projectTaskCount={projectTaskCount}
-          depth={0}
-        />
-      </div>
-
-      {showManage && (
-        <ProjectManageModal
-          onClose={() => setShowManage(false)}
-        />
+    <>
+      {/* Mobile overlay */}
+      {isMobileOpen && (
+        <div className="sidebar-overlay open" onClick={onMobileClose} />
       )}
-    </div>
+      
+      <div className={`project-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
+        <div className="sidebar-header">
+          <span>📁 项目</span>
+          <div className="sidebar-header-btns">
+            <button className="sidebar-manage-btn" onClick={() => setShowManage(true)} title="管理项目">⚙️</button>
+            <button className="sidebar-toggle" onClick={() => {
+              if (onMobileClose) onMobileClose();
+              else setCollapsed(true);
+            }} title="收起">◀</button>
+          </div>
+        </div>
+
+        <div className="sidebar-projects">
+          <div
+            className={`sidebar-project-item ${!filterProject ? 'active' : ''}`}
+            onClick={() => handleSelectProject(null)}
+          >
+            <span className="project-dot" style={{ background: '#888' }}>●</span>
+            <span className="project-name">全部任务</span>
+          </div>
+
+          <ProjectTree
+            nodes={tree}
+            filterProject={filterProject}
+            setFilterProject={handleSelectProject}
+            projectTaskCount={projectTaskCount}
+            depth={0}
+          />
+        </div>
+
+        {showManage && (
+          <ProjectManageModal
+            onClose={() => setShowManage(false)}
+          />
+        )}
+      </div>
+    </>
   );
 }
 

@@ -14,6 +14,7 @@ import Dashboard from './components/Dashboard';
 import GistSyncModal from './components/GistSyncModal';
 import GoogleCalendarSyncModal from './components/GoogleCalendarSyncModal';
 import ProjectSidebar from './components/ProjectSidebar';
+import MobileToolbar from './components/MobileToolbar';
 import { useSync } from './hooks/useSync';
 import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -32,7 +33,10 @@ function AppContent() {
   const [showStats, setShowStats] = useState(false);
   const [showGistSync, setShowGistSync] = useState(false);
   const [showGoogleCalendarSync, setShowGoogleCalendarSync] = useState(false);
+  const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const filterBarRef = useRef();
+  const recognitionRef = useRef(null);
 
   const { theme, toggleTheme } = useTheme();
 
@@ -107,6 +111,72 @@ function AppContent() {
     setTasks(tasks);
   }, [setTasks]);
 
+  // Voice input using Web Speech API
+  const handleVoiceInput = useCallback(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      addToast('您的浏览器不支持语音输入');
+      return;
+    }
+
+    if (isRecording) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsRecording(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.lang = 'zh-CN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      addToast('正在聆听...');
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setIsRecording(false);
+      if (transcript.trim()) {
+        // Create a new task with the voice input
+        setEditingTask(null);
+        // Pre-fill the form with voice text
+        setShowForm(true);
+        // Dispatch custom event to pre-fill form
+        window.dispatchEvent(new CustomEvent('voice-input', { detail: transcript }));
+        addToast(`语音输入: "${transcript}"`);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      setIsRecording(false);
+      if (event.error !== 'no-speech') {
+        addToast('语音识别出错，请重试');
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    try {
+      recognition.start();
+    } catch (e) {
+      setIsRecording(false);
+      addToast('无法启动语音识别');
+    }
+  }, [isRecording, addToast]);
+
+  // Quick add handler
+  const handleQuickAdd = useCallback(() => {
+    handleNewTask();
+  }, [handleNewTask]);
+
   // 全局快捷键
   useKeyboardShortcuts({
     onFocusSearch: () => {
@@ -127,6 +197,8 @@ function AppContent() {
 
   return (
     <div className="app">
+      {isRecording && <div className="voice-recording">🎤 正在录音...</div>}
+
       <header className="app-header">
         <div className="header-row">
           <div>
@@ -134,6 +206,9 @@ function AppContent() {
             <p className="subtitle">Manage your tasks efficiently</p>
           </div>
           <div className="header-actions">
+            <button className="mobile-sidebar-toggle" onClick={() => setSidebarMobileOpen(true)} title="项目">
+              📁
+            </button>
             <button className="theme-toggle" onClick={toggleTheme} title="切换主题">
               {theme === 'dark' ? '☀️ 亮色' : '🌙 暗色'}
             </button>
@@ -213,8 +288,13 @@ function AppContent() {
         )}
         {view === 'list' ? (
           <>
-            <ProjectSidebar />
-            <TaskList onEdit={handleEditTask} onNew={handleNewTask} />
+            <ProjectSidebar
+              isMobileOpen={sidebarMobileOpen}
+              onMobileClose={() => setSidebarMobileOpen(false)}
+            />
+            <div className="task-list-container">
+              <TaskList onEdit={handleEditTask} onNew={handleNewTask} />
+            </div>
           </>
         ) : view === 'kanban' ? (
           <KanbanBoard onEditTask={handleEditTask} />
@@ -222,6 +302,12 @@ function AppContent() {
           <GanttChart onEditTask={handleEditTask} />
         ) : null}
       </main>
+
+      {/* Mobile Toolbar */}
+      <MobileToolbar
+        onQuickAdd={handleQuickAdd}
+        onVoiceInput={handleVoiceInput}
+      />
 
       <footer className="app-footer">
         <p>Hermes TodoList • Built with React + Vite</p>

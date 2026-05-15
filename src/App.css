@@ -115,6 +115,7 @@ body {
 
 .app-main {
   flex: 1;
+  position: relative;
 }
 
 .app-footer {
@@ -199,13 +200,22 @@ body {
   color: white;
 }
 
-@media (max-width: 600px) {
+/* ===== Responsive - Tablet (768px) ===== */
+@media (max-width: 768px) {
   .app {
     padding: 12px;
   }
 
+  .app-header {
+    padding: 20px 0;
+  }
+
   .app-header h1 {
     font-size: 24px;
+  }
+
+  .app-header .subtitle {
+    font-size: 14px;
   }
 
   .toolbar-row {
@@ -215,5 +225,229 @@ body {
 
   .toolbar-actions {
     justify-content: flex-end;
+    flex-wrap: wrap;
   }
+
+  .toolbar-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .view-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .theme-toggle {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  /* Footer hidden on mobile */
+  .app-footer {
+    display: none;
+  }
+}
+
+/* ===== Responsive - Mobile (480px) ===== */
+@media (max-width: 480px) {
+  .app {
+    padding: 8px;
+  }
+
+  .app-header {
+    padding: 12px 0;
+  }
+
+  .app-header h1 {
+    font-size: 20px;
+  }
+
+  .app-header .subtitle {
+    font-size: 12px;
+  }
+
+  .toolbar-row {
+    margin-bottom: 10px;
+    gap: 6px;
+  }
+
+  .toolbar-actions {
+    display: none; /* Hide secondary buttons on very small screens */
+  }
+
+  .header-row {
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Stack view buttons */
+  .view-toggle {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .view-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}
+
+/* ===== Responsive - Hide desktop elements on mobile ===== */
+@media (max-width: 768px) {
+  /* Hide filter bar on very small screens, show compact version */
+  .filter-bar {
+    padding: 10px;
+    margin-bottom: 12px;
+  }
+
+  .filter-row {
+    gap: 8px;
+  }
+
+  /* Compact Kanban controls */
+  .kanban-swimlane-controls {
+    padding: 6px 8px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .kanban-swimlane-controls select {
+    padding: 3px 6px;
+    font-size: 12px;
+  }
+
+  .kanban-settings-btn {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .wip-limit-input {
+    font-size: 12px;
+  }
+
+  .wip-limit-input input {
+    width: 32px;
+    font-size: 11px;
+  }
+
+  /* Gantt compact on mobile */
+  .gantt-header-bar {
+    padding: 8px;
+    font-size: 12px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .gantt-group-btn {
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+}
+
+/* ===== Sidebar Drawer (Mobile) ===== */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+}
+
+.sidebar-overlay.open {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .app-main {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .project-sidebar {
+    position: fixed;
+    left: -220px;
+    top: 0;
+    bottom: 0;
+    width: 220px;
+    max-width: 80vw;
+    z-index: 950;
+    transition: left 0.3s ease;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .project-sidebar.mobile-open {
+    left: 0;
+  }
+
+  .project-sidebar.collapsed {
+    left: -36px;
+  }
+
+  /* Sidebar toggle button visible on mobile */
+  .mobile-sidebar-toggle {
+    display: flex;
+  }
+
+  .task-list-container {
+    width: 100%;
+  }
+}
+
+/* Desktop sidebar toggle (always visible) */
+.mobile-sidebar-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.mobile-sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 768px) {
+  .mobile-sidebar-toggle {
+    display: flex;
+  }
+}
+
+/* Voice input indicator */
+.voice-recording {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  background: var(--color-danger);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1001;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }

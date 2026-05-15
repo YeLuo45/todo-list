@@ -158,3 +158,111 @@
 .btn-clear-date:hover {
   background: var(--bg-input);
 }
+
+/* ===== Mobile Responsive (768px) ===== */
+@media (max-width: 768px) {
+  .filter-bar {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  .filter-row {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .search-input {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .sort-select {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .hide-completed {
+    font-size: 13px;
+  }
+
+  .date-filter {
+    font-size: 13px;
+  }
+
+  .date-filter input[type="date"] {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .tag-filters {
+    gap: 6px;
+  }
+
+  .tag-filter-btn {
+    padding: 3px 10px;
+    font-size: 11px;
+  }
+
+  .tag-filter-label {
+    font-size: 12px;
+  }
+}
+
+/* ===== Small Mobile (480px) ===== */
+@media (max-width: 480px) {
+  .filter-bar {
+    padding: 10px;
+    border-radius: 6px;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .search-wrapper {
+    width: 100%;
+  }
+
+  .search-input {
+    width: 100%;
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .sort-select {
+    width: 100%;
+    font-size: 12px;
+    padding: 7px 10px;
+  }
+
+  .hide-completed {
+    font-size: 12px;
+    padding: 4px 0;
+  }
+
+  .date-filter {
+    width: 100%;
+    flex-wrap: wrap;
+    font-size: 12px;
+  }
+
+  .date-filter input[type="date"] {
+    flex: 1;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  .btn-clear-date {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .tag-filters {
+    width: 100%;
+  }
+
+  .tag-filter-label {
+    display: none;
+  }
+}

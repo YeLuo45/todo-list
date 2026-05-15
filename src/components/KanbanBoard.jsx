@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { getReminderUrgency } from '../utils/reminder';
 import { getAllProjects } from '../utils/projects';
@@ -23,7 +23,7 @@ function formatDuration(ms) {
   return rem > 0 ? `${h}h ${rem}m` : `${h} 小时`;
 }
 
-function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging, showDuration }) {
+function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging, showDuration, onTouchDragStart }) {
   const { deleteTask, isTaskBlocked } = useTaskContext();
   const [isHovered, setIsHovered] = useState(false);
   const blocked = isTaskBlocked(task.id);
@@ -78,6 +78,11 @@ function TaskCard({ task, onEdit, onDragStart, onDragEnd, isDragging, showDurati
       onDragEnd={handleDragEnd}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onTouchStart={(e) => {
+        if (!blocked && onTouchDragStart) {
+          onTouchDragStart(task.id, task.status);
+        }
+      }}
     >
       <div className="kanban-card-header">
         <span className="kanban-priority" style={{ backgroundColor: priorityColors[task.priority] }}>
@@ -161,7 +166,7 @@ function SwimlaneGroup({ label, tasks, onEdit, draggingId, setDraggingId, showDu
   );
 }
 
-function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggingId, onDropTask, swimlaneBy, wipLimit, swimlaneWipLimits }) {
+function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggingId, onDropTask, swimlaneBy, wipLimit, swimlaneWipLimits, touchDragging, onTouchDragEnd, onTouchDragMove }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [dropIndex, setDropIndex] = useState(-1);
@@ -271,6 +276,8 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onTouchMove={onTouchDragMove}
+          onTouchEnd={onTouchDragEnd}
         >
           {overWip && (
             <div className="kanban-wip-warning">⚠️ 已达 WIP 上限</div>
@@ -319,6 +326,7 @@ function KanbanColumn({ column, tasks, onEdit, onAddTask, draggingId, setDraggin
 export default function KanbanBoard({ onEditTask }) {
   const { allTasks, createTask, updateTask, reorderTasks } = useTaskContext();
   const [draggingId, setDraggingId] = useState(null);
+  const [touchDragging, setTouchDragging] = useState(null); // { taskId, sourceStatus }
   const [swimlaneBy, setSwimlaneBy] = useState(() => localStorage.getItem('kanban-swimlane') || 'none');
   const [wipLimits, setWipLimits] = useState(() => {
     try { return JSON.parse(localStorage.getItem('kanban-wip') || '{"todo":0,"in-progress":3,"done":0}'); }
@@ -329,6 +337,7 @@ export default function KanbanBoard({ onEditTask }) {
     catch { return {}; }
   });
   const [showSettings, setShowSettings] = useState(false);
+  const boardRef = useRef(null);
 
   const handleSwimlaneChange = (e) => {
     const val = e.target.value;
@@ -369,8 +378,55 @@ export default function KanbanBoard({ onEditTask }) {
     createTask({ title, status: columnId, tags: [], priority: 'P1' });
   }, [createTask]);
 
+  // Touch drag handlers
+  const handleTouchDragStart = (taskId, sourceStatus) => {
+    setTouchDragging({ taskId, sourceStatus });
+    setDraggingId(taskId);
+  };
+
+  const handleTouchDragMove = (e) => {
+    if (!touchDragging) return;
+    // Visual feedback during touch drag
+  };
+
+  const handleTouchDragEnd = (e) => {
+    if (!touchDragging || !boardRef.current) {
+      setTouchDragging(null);
+      setDraggingId(null);
+      return;
+    }
+
+    const touch = e.changedTouches[0];
+    const columns = boardRef.current.querySelectorAll('.kanban-column-content');
+    let targetColumn = null;
+    let targetRect = null;
+
+    columns.forEach((col, idx) => {
+      const rect = col.getBoundingClientRect();
+      if (touch.clientX >= rect.left && touch.clientX <= rect.right) {
+        targetColumn = COLUMNS[idx];
+        targetRect = rect;
+      }
+    });
+
+    if (targetColumn && targetColumn.id !== touchDragging.sourceStatus) {
+      // Drop in different column
+      const tasksInColumn = allTasks.filter((t) => t.status === targetColumn.id);
+      let newOrder;
+      if (tasksInColumn.length === 0) {
+        newOrder = Date.now();
+      } else {
+        newOrder = (tasksInColumn[tasksInColumn.length - 1].order || 0) + 1000;
+      }
+      handleDropTask(touchDragging.taskId, touchDragging.sourceStatus, targetColumn.id, newOrder);
+    }
+
+    setTouchDragging(null);
+    setDraggingId(null);
+  };
+
   return (
-    <div>
+    <div className="kanban-board-wrapper" ref={boardRef}>
       <div className="kanban-swimlane-controls">
         <span>泳道分组：</span>
         <select value={swimlaneBy} onChange={handleSwimlaneChange}>
@@ -416,6 +472,9 @@ export default function KanbanBoard({ onEditTask }) {
               setDraggingId={setDraggingId} onDropTask={handleDropTask}
               swimlaneBy={swimlaneBy} wipLimit={wipLimits[col.id] || 0}
               swimlaneWipLimits={swimlaneWipLimits}
+              touchDragging={touchDragging}
+              onTouchDragEnd={handleTouchDragEnd}
+              onTouchDragMove={handleTouchDragMove}
             />
           );
         })}

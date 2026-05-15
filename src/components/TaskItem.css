@@ -4,8 +4,10 @@
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s;
   border: 1px solid var(--border-card);
+  position: relative;
+  overflow: hidden;
 }
 
 .task-item:hover {
@@ -17,6 +19,61 @@
   background: var(--bg-hover);
 }
 
+.task-item.dragging {
+  box-shadow: var(--shadow-lg);
+  opacity: 0.9;
+  transform: scale(1.02);
+  z-index: 100;
+}
+
+/* Swipe action styles */
+.task-item.swipe-show-actions {
+  border-color: var(--color-primary);
+}
+
+.swipe-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  z-index: 5;
+}
+
+.swipe-actions-left {
+  right: 0;
+  background: linear-gradient(to left, rgba(239, 68, 68, 0.9), rgba(239, 68, 68, 0.7));
+  border-radius: 0 8px 8px 0;
+  align-items: center;
+}
+
+.swipe-action-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 600;
+  transition: filter 0.2s;
+}
+
+.swipe-action-btn.complete {
+  background: var(--color-success);
+  color: white;
+}
+
+.swipe-action-btn.delete {
+  background: var(--color-danger);
+  color: white;
+}
+
+.swipe-action-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* Task main */
 .task-main {
   display: flex;
   gap: 12px;
@@ -39,11 +96,13 @@
   cursor: pointer;
 }
 
+/* Task header */
 .task-header {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 6px;
+  flex-wrap: wrap;
 }
 
 .task-title {
@@ -70,6 +129,14 @@
   font-weight: 600;
 }
 
+/* Mobile meta - visible only on mobile */
+.task-mobile-meta {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .task-description {
   font-size: 14px;
   color: var(--text-secondary);
@@ -83,6 +150,11 @@
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 8px;
+}
+
+/* Desktop content - hidden on mobile */
+.task-desktop-content {
+  display: block;
 }
 
 .task-tags {
@@ -106,6 +178,11 @@
 
 .task-due.overdue {
   color: var(--color-danger);
+  font-weight: 600;
+}
+
+.task-due.urgent {
+  color: #ea580c;
   font-weight: 600;
 }
 
@@ -177,11 +254,6 @@
 
 [data-theme="dark"] .upcoming-card {
   background: rgba(234, 179, 8, 0.1);
-}
-
-.task-due.urgent {
-  color: #ea580c;
-  font-weight: 600;
 }
 
 .task-item.selected {
@@ -378,4 +450,147 @@
   color: var(--text-muted);
   margin-left: auto;
   padding-left: 8px;
+}
+
+/* ===== Mobile Responsive (768px) ===== */
+@media (max-width: 768px) {
+  .task-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+  }
+
+  .task-main {
+    gap: 8px;
+  }
+
+  .task-status {
+    padding: 6px 8px;
+    font-size: 11px;
+    min-width: 80px;
+  }
+
+  .task-header {
+    margin-bottom: 4px;
+  }
+
+  .task-title {
+    font-size: 14px;
+    flex: 1;
+  }
+
+  .task-priority {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  .ai-priority-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  /* Show mobile meta */
+  .task-mobile-meta {
+    display: flex;
+  }
+
+  /* Hide desktop content by default */
+  .task-desktop-content {
+    display: none;
+  }
+
+  /* Expanded state shows full content */
+  .task-item.expanded .task-desktop-content {
+    display: block;
+    margin-top: 8px;
+  }
+
+  .task-description {
+    font-size: 13px;
+    margin: 6px 0;
+  }
+
+  .task-meta {
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .task-tag {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+
+  .task-due {
+    font-size: 11px;
+  }
+
+  .task-prediction,
+  .task-duration,
+  .task-score {
+    font-size: 10px;
+    padding: 2px 5px;
+  }
+
+  .task-ai-actions {
+    padding-top: 8px;
+    margin-top: 8px;
+  }
+
+  .btn-ai-breakdown {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  /* Compact task actions on mobile */
+  .task-actions {
+    gap: 6px;
+  }
+
+  .btn-edit,
+  .btn-delete {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+}
+
+/* ===== Small Mobile (480px) ===== */
+@media (max-width: 480px) {
+  .task-item {
+    padding: 10px;
+  }
+
+  .task-main {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .task-checkbox {
+    width: 14px;
+    height: 14px;
+  }
+
+  .task-status {
+    min-width: 70px;
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+
+  .task-title {
+    font-size: 13px;
+  }
+
+  /* Swipe actions full height buttons */
+  .swipe-actions {
+    padding: 6px;
+  }
+
+  .swipe-action-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  /* Hide AI breakdown on very small screens */
+  .btn-ai-breakdown {
+    display: none;
+  }
 }
