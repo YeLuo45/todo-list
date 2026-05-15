@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useTaskContext, computeTaskScore, getQuadrant, QUADRANT_LABELS } from '../context/TaskContext';
 import { getReminderUrgency } from '../utils/reminder';
 import { checkDependencyConflicts } from '../utils/aiDependency';
+import { getCurrentUser, getUserById } from '../utils/comment';
 import MilestoneBoard from './MilestoneBoard';
 import './Dashboard.css';
 
@@ -26,6 +27,8 @@ export default function Dashboard({ onNewTask, onEditTask }) {
   const { allTasks } = useTaskContext();
   const [activeTab, setActiveTab] = useState('overview');
   const [conflictModal, setConflictModal] = useState(false);
+  const [quickFilter, setQuickFilter] = useState(null); // null, 'my_tasks', 'assigned_to_me'
+  const currentUser = getCurrentUser();
 
   // Check for dependency conflicts
   const { hasConflicts, conflicts } = useMemo(() => {
@@ -98,6 +101,26 @@ export default function Dashboard({ onNewTask, onEditTask }) {
     }));
   }, [allTasks]);
 
+  // Quick filter tasks
+  const quickFilteredTasks = useMemo(() => {
+    if (!quickFilter) return null;
+    
+    let filtered = [];
+    if (quickFilter === 'my_tasks') {
+      // Tasks assigned to current user (i.e., this user is the creator/owner)
+      filtered = allTasks.filter((t) => {
+        // This user is the creator
+        return t.assignee === currentUser.id;
+      });
+    } else if (quickFilter === 'assigned_to_me') {
+      // Tasks assigned TO this user (by someone else)
+      filtered = allTasks.filter((t) => {
+        return t.assignee === currentUser.id && t.createdBy !== currentUser.id;
+      });
+    }
+    return filtered.sort((a, b) => computeTaskScore(b) - computeTaskScore(a));
+  }, [allTasks, quickFilter, currentUser]);
+
   const urgency = getReminderUrgency;
 
   return (
@@ -126,6 +149,45 @@ export default function Dashboard({ onNewTask, onEditTask }) {
 
       {activeTab === 'overview' && (
         <>
+          {/* Quick Filter Results */}
+          {quickFilter && quickFilteredTasks && (
+            <div className="quick-filter-results">
+              <h3>
+                {quickFilter === 'my_tasks' && '👤 我负责的任务'}
+                {quickFilter === 'assigned_to_me' && '📋 指派给我的任务'}
+                <span className="filter-count">({quickFilteredTasks.length})</span>
+              </h3>
+              {quickFilteredTasks.length === 0 ? (
+                <p className="dash-empty">暂无任务</p>
+              ) : (
+                <div className="dash-task-list">
+                  {quickFilteredTasks.map((t) => (
+                    <div key={t.id} className="dash-task" onClick={() => onEditTask(t)}>
+                      <div className="dash-task-left">
+                        <span className="dash-task-title">{t.title}</span>
+                        <span className="dash-task-meta">
+                          {t.priority} {t.dueDate && `📅 ${t.dueDate}`}
+                          {t.assignee && (() => {
+                            const assignee = getUserById(t.assignee);
+                            return assignee ? ` → ${assignee.avatar} ${assignee.name}` : '';
+                          })()}
+                        </span>
+                      </div>
+                      <div className="dash-task-right">
+                        <span
+                          className="dash-score"
+                          style={{ backgroundColor: QUADRANT_LABELS[getQuadrant(t)]?.color }}
+                        >
+                          {computeTaskScore(t)}分
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* KPI Cards */}
           <div className="dashboard-kpis">
             <KpiCard icon="📋" label="总任务" value={stats.total} color="var(--color-primary)" />
@@ -227,6 +289,29 @@ export default function Dashboard({ onNewTask, onEditTask }) {
                     📊 统计面板
                   </button>
                 </div>
+                <h3 style={{ marginTop: 16 }}>🔍 快捷筛选</h3>
+                <div className="quick-filters">
+                  <button 
+                    className={`quick-filter-btn ${quickFilter === 'my_tasks' ? 'active' : ''}`}
+                    onClick={() => setQuickFilter(quickFilter === 'my_tasks' ? null : 'my_tasks')}
+                  >
+                    👤 我负责的
+                  </button>
+                  <button 
+                    className={`quick-filter-btn ${quickFilter === 'assigned_to_me' ? 'active' : ''}`}
+                    onClick={() => setQuickFilter(quickFilter === 'assigned_to_me' ? null : 'assigned_to_me')}
+                  >
+                    📋 指派给我的
+                  </button>
+                </div>
+                {quickFilter && (
+                  <button 
+                    className="quick-filter-clear"
+                    onClick={() => setQuickFilter(null)}
+                  >
+                    清除筛选
+                  </button>
+                )}
               </div>
 
               <div className="dash-section">

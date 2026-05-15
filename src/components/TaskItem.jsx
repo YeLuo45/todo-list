@@ -7,6 +7,9 @@ import { breakIntoSubtasks, getAPIToken } from '../utils/aiSubtask';
 import { getQuickEstimate, predictCompletionTime } from '../utils/aiPrediction';
 import { improveDescription, formatDiff } from '../utils/aiDescription优化';
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
+import { getTaskCommentCount } from '../utils/comment';
+import { getUserById } from '../utils/comment';
+import TaskDetailModal from './TaskDetailModal';
 import './TaskItem.css';
 
 const priorityColors = {
@@ -28,6 +31,8 @@ export default function TaskItem({ task, onEdit, onDragStart, onDragEnd, isDragg
   const [isImproving, setIsImproving] = useState(false);
   const [improvedDesc, setImprovedDesc] = useState(null);
   const [showDescDiff, setShowDescDiff] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
   const cardRef = useRef(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
@@ -224,7 +229,7 @@ export default function TaskItem({ task, onEdit, onDragStart, onDragEnd, isDragg
       if (quickEst) {
         setPrediction(quickEst);
       }
-      
+
       // Async AI prediction if token is available
       const token = getAPIToken();
       if (token) {
@@ -240,6 +245,11 @@ export default function TaskItem({ task, onEdit, onDragStart, onDragEnd, isDragg
       setPrediction(null);
     }
   }, [task.id, task.subtasks, allTasks]);
+
+  // Load comment count
+  useEffect(() => {
+    setCommentCount(getTaskCommentCount(task.id));
+  }, [task.id]);
 
   // Duration
   const formatDuration = (ms) => {
@@ -417,6 +427,30 @@ export default function TaskItem({ task, onEdit, onDragStart, onDragEnd, isDragg
             {task.isRecurring && (
               <span className="task-recurring" title="循环任务">🔄</span>
             )}
+            {/* Assignee badge */}
+            {task.assignee && (() => {
+              const assignee = getUserById(task.assignee);
+              return assignee ? (
+                <span 
+                  className="task-assignee" 
+                  title={`指派给 ${assignee.name}`}
+                  style={{ backgroundColor: assignee.color }}
+                >
+                  {assignee.avatar} {assignee.name}
+                </span>
+              ) : null;
+            })()}
+            {/* Comment button */}
+            <button 
+              className="task-comment-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDetailModal(true);
+              }}
+              title="查看详情和评论"
+            >
+              💬 {commentCount > 0 && commentCount}
+            </button>
           </div>
 
           {/* AI Breakdown Button */}
@@ -523,6 +557,14 @@ export default function TaskItem({ task, onEdit, onDragStart, onDragEnd, isDragg
         <button className="btn-edit" onClick={() => onEdit(task)}>编辑</button>
         <button className="btn-delete" onClick={handleDelete}>删除</button>
       </div>
+
+      {showDetailModal && (
+        <TaskDetailModal 
+          task={task} 
+          onClose={() => setShowDetailModal(false)} 
+          onEdit={onEdit}
+        />
+      )}
     </div>
   );
 }

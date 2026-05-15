@@ -2,6 +2,7 @@ import { useState } from 'react';
 import './SettingsModal.css';
 import { getGoogleCalendarApiKey, setGoogleCalendarApiKey } from '../utils/googleCalendarSync';
 import { getSlackWebhookUrl, setSlackWebhookUrl } from '../utils/slackNotifier';
+import { getUsers, addUser, updateUser, deleteUser, getCurrentUser, setCurrentUser } from '../utils/comment';
 
 const AI_TOKEN_KEY = 'hermes_ai_token';
 
@@ -15,6 +16,13 @@ export default function SettingsModal({ token, repo, onSave, onClose }) {
   const [showGcalKey, setShowGcalKey] = useState(false);
   const [slackWebhook, setSlackWebhook] = useState(getSlackWebhookUrl());
   const [showSlackWebhook, setShowSlackWebhook] = useState(false);
+  const [users, setUsers] = useState(getUsers());
+  const [currentUser, setCurrentUserState] = useState(getCurrentUser());
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserAvatar, setNewUserAvatar] = useState('👤');
+  const [newUserColor, setNewUserColor] = useState('#6b7280');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -29,6 +37,55 @@ export default function SettingsModal({ token, repo, onSave, onClose }) {
     // Save Slack Webhook URL
     setSlackWebhookUrl(slackWebhook.trim());
     onSave(inputToken.trim(), inputRepo.trim());
+  };
+
+  const handleAddUser = () => {
+    if (!newUserName.trim()) return;
+    const user = addUser({ name: newUserName.trim(), avatar: newUserAvatar, color: newUserColor });
+    setUsers(getUsers());
+    setNewUserName('');
+    setNewUserAvatar('👤');
+    setNewUserColor('#6b7280');
+    setShowUserForm(false);
+  };
+
+  const handleUpdateUser = () => {
+    if (!newUserName.trim() || !editingUser) return;
+    updateUser(editingUser.id, { name: newUserName.trim(), avatar: newUserAvatar, color: newUserColor });
+    setUsers(getUsers());
+    setNewUserName('');
+    setNewUserAvatar('👤');
+    setNewUserColor('#6b7280');
+    setEditingUser(null);
+    setShowUserForm(false);
+  };
+
+  const handleDeleteUser = (id) => {
+    if (window.confirm('确定删除该用户？')) {
+      deleteUser(id);
+      setUsers(getUsers());
+    }
+  };
+
+  const handleSelectCurrentUser = (userId) => {
+    setCurrentUser(userId);
+    setCurrentUserState(getCurrentUser());
+  };
+
+  const startEditUser = (user) => {
+    setEditingUser(user);
+    setNewUserName(user.name);
+    setNewUserAvatar(user.avatar);
+    setNewUserColor(user.color);
+    setShowUserForm(true);
+  };
+
+  const cancelUserForm = () => {
+    setShowUserForm(false);
+    setEditingUser(null);
+    setNewUserName('');
+    setNewUserAvatar('👤');
+    setNewUserColor('#6b7280');
   };
 
   return (
@@ -123,6 +180,109 @@ export default function SettingsModal({ token, repo, onSave, onClose }) {
               </div>
               <small>用于发送任务到期提醒到 Slack。获取方式：Slack App → Incoming Webhooks</small>
             </div>
+          </div>
+
+          <div className="form-section">
+            <h4>👥 协作成员管理</h4>
+            <div className="current-user-display">
+              <span>当前用户：</span>
+              <span 
+                className="current-user-badge" 
+                style={{ backgroundColor: currentUser.color }}
+              >
+                {currentUser.avatar} {currentUser.name}
+              </span>
+            </div>
+            
+            <div className="users-list">
+              {users.map(user => (
+                <div key={user.id} className={`user-item ${user.id === currentUser.id ? 'is-current' : ''}`}>
+                  <span 
+                    className="user-avatar" 
+                    style={{ backgroundColor: user.color }}
+                    onClick={() => handleSelectCurrentUser(user.id)}
+                    title="点击设为当前用户"
+                  >
+                    {user.avatar}
+                  </span>
+                  <span className="user-name">{user.name}</span>
+                  <div className="user-actions">
+                    <button 
+                      type="button" 
+                      className="btn-user-edit"
+                      onClick={() => startEditUser(user)}
+                    >
+                      ✏️
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn-user-delete"
+                      onClick={() => handleDeleteUser(user.id)}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {showUserForm ? (
+              <div className="user-form">
+                <div className="form-group">
+                  <label>名称</label>
+                  <input
+                    type="text"
+                    value={newUserName}
+                    onChange={(e) => setNewUserName(e.target.value)}
+                    placeholder="成员名称"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>头像</label>
+                  <select value={newUserAvatar} onChange={(e) => setNewUserAvatar(e.target.value)}>
+                    <option value="👤">👤</option>
+                    <option value="🧑">🧑</option>
+                    <option value="👨">👨</option>
+                    <option value="👩">👩</option>
+                    <option value="🧔">🧔</option>
+                    <option value="👴">👴</option>
+                    <option value="👵">👵</option>
+                    <option value="🧑‍💻">🧑‍💻</option>
+                    <option value="👨‍🎓">👨‍🎓</option>
+                    <option value="👩‍🎓">👩‍🎓</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>颜色</label>
+                  <input
+                    type="color"
+                    value={newUserColor}
+                    onChange={(e) => setNewUserColor(e.target.value)}
+                  />
+                </div>
+                <div className="user-form-actions">
+                  {editingUser ? (
+                    <>
+                      <button type="button" className="btn-save" onClick={handleUpdateUser}>保存</button>
+                      <button type="button" className="btn-cancel" onClick={cancelUserForm}>取消</button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" className="btn-save" onClick={handleAddUser}>添加</button>
+                      <button type="button" className="btn-cancel" onClick={cancelUserForm}>取消</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <button 
+                type="button" 
+                className="btn-add-user"
+                onClick={() => setShowUserForm(true)}
+              >
+                ➕ 添加成员
+              </button>
+            )}
           </div>
 
           <div className="form-actions">

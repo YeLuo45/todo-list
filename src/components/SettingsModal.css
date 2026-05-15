@@ -122,3 +122,150 @@
   font-size: 14px;
   color: #475569;
 }
+
+/* User Management */
+.current-user-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.current-user-badge {
+  padding: 2px 10px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 500;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--bg-hover);
+}
+
+.user-item.is-current {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid var(--color-primary);
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.user-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.user-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-user-edit,
+.btn-user-delete {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-user-edit {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+}
+
+.btn-user-edit:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-user-delete {
+  background: var(--bg-card);
+  color: var(--text-muted);
+}
+
+.btn-user-delete:hover {
+  background: var(--color-danger);
+  color: white;
+}
+
+.btn-add-user {
+  width: 100%;
+  padding: 8px;
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-user:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.user-form {
+  background: var(--bg-hover);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.user-form .form-group {
+  margin-bottom: 10px;
+}
+
+.user-form .form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.user-form .form-group input,
+.user-form .form-group select {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.user-form .form-group input[type="color"] {
+  height: 32px;
+  padding: 2px;
+}
+
+.user-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}

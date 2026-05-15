@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { getAPIToken } from '../utils/aiSubtask';
 import { improveDescription } from '../utils/aiDescription优化';
+import { getUsers, getUserById } from '../utils/comment';
+import { addActivity, ACTIVITY_ACTIONS } from '../utils/activityLog';
 import './TaskForm.css';
 
 export default function TaskForm({ editingTask, onClose }) {
@@ -29,8 +31,11 @@ export default function TaskForm({ editingTask, onClose }) {
   const [isImproving, setIsImproving] = useState(false);
   const [improvedDesc, setImprovedDesc] = useState(null);
   const [showDescDiff, setShowDescDiff] = useState(false);
+  const [assignee, setAssignee] = useState('');
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
+    setUsers(getUsers());
     if (editingTask) {
       setTitle(editingTask.title || '');
       setContent(editingTask.content || '');
@@ -50,10 +55,7 @@ export default function TaskForm({ editingTask, onClose }) {
       setDependsOn(editingTask.dependsOn || []);
       setRemindBefore(editingTask.remindBefore || '');
       setRemindAt(editingTask.remindAt || '');
-      setStartTime(editingTask.startTime ? editingTask.startTime.slice(0, 16) : '');
-      setEndTime(editingTask.endTime ? editingTask.endTime.slice(0, 16) : '');
-      setImportance(editingTask.importance ?? 3);
-      setUrgency(editingTask.urgency ?? 3);
+      setAssignee(editingTask.assignee || '');
     }
   }, [editingTask]);
 
@@ -164,9 +166,23 @@ export default function TaskForm({ editingTask, onClose }) {
       endTime: endTime ? new Date(endTime).toISOString() : null,
       importance,
       urgency,
+      assignee: assignee || null,
     };
-    if (editingTask) updateTask(editingTask.id, taskData);
-    else createTask(taskData);
+    
+    let taskId;
+    if (editingTask) {
+      updateTask(editingTask.id, taskData);
+      taskId = editingTask.id;
+      // Log activity if assignee changed
+      if (assignee !== (editingTask.assignee || null)) {
+        const assigneeUser = assignee ? getUserById(assignee) : null;
+        addActivity(taskId, 'assigned', { assigneeName: assigneeUser?.name || '未知' });
+      }
+    } else {
+      const newTask = createTask(taskData);
+      taskId = newTask.id;
+      addActivity(taskId, 'created');
+    }
     onClose();
   };
 
@@ -215,6 +231,17 @@ export default function TaskForm({ editingTask, onClose }) {
               <option value="todo">待办</option>
               <option value="in-progress">进行中</option>
               <option value="done">已完成</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>指派给</label>
+            <select value={assignee} onChange={(e) => setAssignee(e.target.value)}>
+              <option value="">未指派</option>
+              {users.map(user => (
+                <option key={user.id} value={user.id}>
+                  {user.avatar} {user.name}
+                </option>
+              ))}
             </select>
           </div>
         </div>
