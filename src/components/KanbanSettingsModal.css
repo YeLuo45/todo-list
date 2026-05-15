@@ -84,3 +84,108 @@
 .settings-close-btn:hover {
   background: var(--bg-hover);
 }
+
+/* Column Order List */
+.column-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.column-order-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-hover);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  cursor: grab;
+  user-select: none;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.column-order-item:hover {
+  border-color: var(--color-primary);
+}
+
+.column-order-item.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+.column-order-drag-handle {
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: grab;
+}
+
+.column-order-drag-handle:active {
+  cursor: grabbing;
+}
+
+.column-order-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.column-order-label {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Swimlane Colors */
+.swimlane-colors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.swimlane-color-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--bg-hover);
+  border-radius: 6px;
+  gap: 12px;
+}
+
+.swimlane-color-label {
+  font-size: 13px;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.swimlane-color-presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.swimlane-color-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.swimlane-color-btn:hover {
+  transform: scale(1.15);
+}
+
+.swimlane-color-btn.selected {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px var(--bg-card);
+}

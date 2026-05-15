@@ -1,18 +1,30 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import './KanbanSettingsModal.css';
 import { getAllProjects } from '../utils/projects';
-
-const COLUMNS = [
-  { id: 'todo', label: '待办' },
-  { id: 'in-progress', label: '进行中' },
-  { id: 'done', label: '已完成' },
-];
+import {
+  getColumnOrder,
+  saveColumnOrder,
+  getOrderedColumns,
+  getLaneColors,
+  saveLaneColors,
+  LANE_COLOR_PRESETS,
+  DEFAULT_COLUMNS,
+} from '../utils/kanbanSettings';
 
 export default function KanbanSettingsModal({
   swimlaneBy, wipLimits, swimlaneWipLimits,
   onClose, onSwimlaneChange, onWipChange, onSwimlaneWipChange,
 }) {
   const projects = useMemo(() => getAllProjects(), []);
+
+  // Column ordering state
+  const [columnOrder, setColumnOrder] = useState(() => getColumnOrder());
+  const [draggingColIdx, setDraggingColIdx] = useState(null);
+  const dragItem = useRef(null);
+  const dragOverItem = useRef(null);
+
+  // Lane colors state
+  const [laneColors, setLaneColors] = useState(() => getLaneColors());
 
   const swimlaneKeys = useMemo(() => {
     if (swimlaneBy === 'priority') {
@@ -27,6 +39,71 @@ export default function KanbanSettingsModal({
     }
     return [];
   }, [swimlaneBy, projects]);
+
+  // Column drag handlers
+  const handleColDragStart = (idx) => {
+    dragItem.current = idx;
+    setDraggingColIdx(idx);
+  };
+
+  const handleColDragEnter = (idx) => {
+    dragOverItem.current = idx;
+    if (dragItem.current === idx) return;
+    const newOrder = [...columnOrder];
+    const draggedId = newOrder[dragItem.current];
+    newOrder.splice(dragItem.current, 1);
+    newOrder.splice(idx, 0, draggedId);
+    dragItem.current = idx;
+    setColumnOrder(newOrder);
+  };
+
+  const handleColDragEnd = () => {
+    setDraggingColIdx(null);
+    dragItem.current = null;
+    dragOverItem.current = null;
+    saveColumnOrder(columnOrder);
+  };
+
+  // Lane color handlers
+  const handleLaneColorChange = (key, color) => {
+    const updated = { ...laneColors, [key]: color };
+    setLaneColors(updated);
+    saveLaneColors(updated);
+  };
+
+  // Auto-assign colors for projects without colors
+  useEffect(() => {
+    if (swimlaneBy === 'project') {
+      const updated = { ...laneColors };
+      let changed = false;
+      projects.forEach((p) => {
+        if (!updated[p.id]) {
+          // Find first unused preset color
+          const usedSet = new Set(Object.values(updated));
+          for (const preset of LANE_COLOR_PRESETS) {
+            if (!usedSet.has(preset.value)) {
+              updated[p.id] = preset.value;
+              changed = true;
+              break;
+            }
+          }
+          if (!changed && !updated[p.id]) {
+            updated[p.id] = LANE_COLOR_PRESETS[0].value;
+            changed = true;
+          }
+        }
+      });
+      if (changed) {
+        setLaneColors(updated);
+        saveLaneColors(updated);
+      }
+    }
+  }, [swimlaneBy, projects]);
+
+  // Get ordered columns with their config
+  const orderedColumns = useMemo(() => {
+    return columnOrder.map(id => DEFAULT_COLUMNS.find(c => c.id === id)).filter(Boolean);
+  }, [columnOrder]);
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -48,9 +125,65 @@ export default function KanbanSettingsModal({
         </section>
 
         <section className="settings-section">
+          <h4>列排序（拖拽调整顺序）</h4>
+          <div className="column-order-list">
+            {orderedColumns.map((col, idx) => (
+              <div
+                key={col.id}
+                className={`column-order-item ${draggingColIdx === idx ? 'dragging' : ''}`}
+                draggable
+                onDragStart={() => handleColDragStart(idx)}
+                onDragEnter={() => handleColDragEnter(idx)}
+                onDragEnd={handleColDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <span className="column-order-drag-handle">⋮⋮</span>
+                <span
+                  className="column-order-color"
+                  style={{ backgroundColor: col.color }}
+                />
+                <span className="column-order-label">{col.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="settings-section">
+          <h4>泳道颜色</h4>
+          <p className="settings-hint">为泳道设置显示颜色（按项目分组时自动分配）</p>
+          <div className="swimlane-colors-list">
+            {swimlaneBy !== 'none' && swimlaneKeys.length > 0 && (
+              <>
+                {swimlaneKeys.map(({ key, label }) => (
+                  <div key={key} className="swimlane-color-row">
+                    <span className="swimlane-color-label" style={laneColors[key] ? { color: laneColors[key] } : {}}>
+                      {label}
+                    </span>
+                    <div className="swimlane-color-presets">
+                      {LANE_COLOR_PRESETS.map((preset) => (
+                        <button
+                          key={preset.value}
+                          className={`swimlane-color-btn ${laneColors[key] === preset.value ? 'selected' : ''}`}
+                          style={{ backgroundColor: preset.value }}
+                          title={preset.label}
+                          onClick={() => handleLaneColorChange(key, preset.value)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+            {swimlaneBy === 'none' && (
+              <p className="settings-hint">请先选择泳道分组模式</p>
+            )}
+          </div>
+        </section>
+
+        <section className="settings-section">
           <h4>列 WIP 限制</h4>
           <div className="settings-wip-grid">
-            {COLUMNS.map((col) => (
+            {orderedColumns.map((col) => (
               <div key={col.id} className="settings-wip-row">
                 <label>{col.label}</label>
                 <input

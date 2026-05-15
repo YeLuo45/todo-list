@@ -55,6 +55,12 @@
   border-bottom: 3px solid;
 }
 
+.kanban-column-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .kanban-column-title {
   font-weight: 600;
   font-size: 14px;
@@ -106,6 +112,11 @@
   cursor: grabbing;
   box-shadow: var(--shadow-lg);
   transform: scale(1.02) rotate(2deg);
+}
+
+.kanban-card.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary);
 }
 
 .kanban-card-header {
@@ -268,6 +279,8 @@
   user-select: none;
   border-radius: 6px;
   margin-bottom: 4px;
+  border-left: 3px solid transparent;
+  transition: border-color 0.15s;
 }
 
 .swimlane-header:hover {
@@ -282,6 +295,13 @@
 
 .swimlane-toggle.collapsed {
   transform: rotate(-90deg);
+}
+
+.swimlane-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .swimlane-label {
@@ -421,6 +441,241 @@
   color: var(--color-primary);
 }
 
+/* === Column Select Button === */
+.kanban-col-select-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.15s;
+  line-height: 1;
+}
+
+.kanban-col-select-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.kanban-col-select-btn.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* === Batch Selection Styles === */
+.batch-toolbar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  min-width: 320px;
+  max-width: 90vw;
+}
+
+.batch-toolbar-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.batch-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.batch-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.batch-btn:hover {
+  filter: brightness(0.95);
+}
+
+.batch-btn-move {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.batch-btn-move:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.batch-btn-copy {
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+.batch-btn-copy:hover {
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.batch-btn-delete {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.batch-btn-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.batch-btn-cancel {
+  border-color: var(--text-muted);
+  color: var(--text-muted);
+}
+
+.batch-target-selector {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.batch-target-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.batch-target-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 2px solid;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.batch-target-btn:hover {
+  filter: brightness(1.1);
+}
+
+.batch-target-cancel {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.batch-target-cancel:hover {
+  background: var(--bg-hover);
+}
+
+.select-mode-hint {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 99;
+  text-align: center;
+  max-width: 90vw;
+}
+
+/* === Batch Action Dropdown Menus === */
+.batch-action-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px;
+  min-width: 140px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  margin-bottom: 4px;
+}
+
+.batch-action-menu-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.batch-action-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.batch-action-menu-item:hover {
+  background: var(--bg-hover);
+}
+
+.batch-action-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.batch-action-menu-cancel {
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.batch-action-menu-cancel:hover {
+  background: var(--bg-hover);
+}
+
 /* ===== Mobile Responsive (768px) ===== */
 @media (max-width: 768px) {
   .kanban-board {
@@ -500,63 +755,24 @@
     margin-left: 4px;
   }
 
-  .wip-limit-input {
+  .batch-toolbar {
+    bottom: 10px;
+    padding: 10px 12px;
+    min-width: 280px;
+  }
+
+  .batch-toolbar-actions {
+    gap: 6px;
+  }
+
+  .batch-btn {
+    padding: 6px 10px;
     font-size: 12px;
   }
 
-  .wip-limit-input input {
-    width: 32px;
+  .select-mode-hint {
+    bottom: 10px;
     font-size: 11px;
-  }
-
-  .wip-limit-input label {
-    display: none;
-  }
-}
-
-/* ===== Small Mobile (480px) ===== */
-@media (max-width: 480px) {
-  .kanban-board {
-    gap: 8px;
-    padding: 8px;
-  }
-
-  .kanban-column-wrapper {
-    min-width: 200px;
-    max-width: 260px;
-  }
-
-  .kanban-column {
-    padding: 8px;
-  }
-
-  .kanban-column-title {
-    font-size: 12px;
-  }
-
-  .kanban-card {
-    padding: 6px 8px;
-  }
-
-  .kanban-card-title {
-    font-size: 12px;
-  }
-
-  .kanban-card-header {
-    margin-bottom: 2px;
-  }
-
-  .kanban-card-actions {
-    margin-top: 4px;
-  }
-
-  .kanban-card-actions .btn-edit {
-    width: 100%;
-    padding: 4px;
-    font-size: 11px;
-  }
-
-  .kanban-tags {
-    display: none; /* Hide tags on very small screens */
+    padding: 8px 12px;
   }
 }
