@@ -3,6 +3,9 @@ import { drawBarChart, drawLineChart, drawPieChart } from '../utils/charts';
 import BurndownChart from './BurndownChart';
 import { analyzeBottlenecks, getBottleneckTypeLabel, getSeverityColor } from '../utils/bottleneckAnalysis';
 import { generateWeeklyReport, generateMonthlyReport } from '../utils/productivityReport';
+import { findDuplicates, getDuplicateStats, mergeDuplicateTasks, dismissDuplicateWarning, isDuplicateDismissed } from '../utils/aiDuplicateDetection';
+import { getWorkHabitSummary, analyzeWorkPatterns } from '../utils/aiWorkPattern';
+import { useTaskContext } from '../context/TaskContext';
 import './StatsDashboard.css';
 
 const DAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -175,6 +178,26 @@ export default function StatsDashboard({ tasks, onClose }) {
   const [bottleneckResult, setBottleneckResult] = useState(null);
   const [weeklyReport, setWeeklyReport] = useState(null);
   const [monthlyReport, setMonthlyReport] = useState(null);
+  const [duplicateGroups, setDuplicateGroups] = useState([]);
+  const [workHabitAnalysis, setWorkHabitAnalysis] = useState(null);
+  const { updateTask } = useTaskContext();
+
+  // Find duplicates
+  useEffect(() => {
+    const allDuplicates = findDuplicates(tasks);
+    // Filter out dismissed duplicates
+    const activeDuplicates = allDuplicates.filter(group => {
+      const ids = group.tasks.map(t => t.id);
+      return !isDuplicateDismissed(ids[0], ids[1]);
+    });
+    setDuplicateGroups(activeDuplicates);
+  }, [tasks]);
+
+  // Analyze work patterns
+  useEffect(() => {
+    const analysis = getWorkHabitSummary(tasks);
+    setWorkHabitAnalysis(analysis);
+  }, [tasks]);
   
   // 计算统计数据
   const now = new Date();
@@ -270,6 +293,12 @@ export default function StatsDashboard({ tasks, onClose }) {
           >
             ⚠️ 瓶颈 {bottleneckResult?.summary?.total > 0 && <span className="bottleneck-badge">{bottleneckResult.summary.total}</span>}
           </button>
+          <button 
+            className={`stats-tab ${activeTab === 'ai-insights' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ai-insights')}
+          >
+            🤖 AI 分析 {duplicateGroups.length > 0 && <span className="bottleneck-badge">{duplicateGroups.length}</span>}
+          </button>
         </div>
 
         <div className="stats-body">
@@ -343,6 +372,160 @@ export default function StatsDashboard({ tasks, onClose }) {
                   🎉 暂无瓶颈任务，一切运行良好！
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'ai-insights' && (
+            <div className="ai-insights-section">
+              {/* Duplicate Detection Warning */}
+              {duplicateGroups.length > 0 && (
+                <div className="duplicate-warning-card">
+                  <div className="duplicate-warning-header">
+                    <span className="warning-icon">⚠️</span>
+                    <span className="warning-title">疑似重复任务</span>
+                    <span className="warning-count">{duplicateGroups.length} 组</span>
+                  </div>
+                  <div className="duplicate-groups">
+                    {duplicateGroups.map((group, groupIdx) => (
+                      <div key={groupIdx} className="duplicate-group">
+                        <div className="duplicate-reason">{group.reason}</div>
+                        <div className="duplicate-tasks">
+                          {group.tasks.map((task) => (
+                            <div key={task.id} className="duplicate-task-item">
+                              <span className="task-title">{task.title}</span>
+                              {task.dueDate && <span className="task-due">📅 {task.dueDate}</span>}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="duplicate-actions">
+                          <button 
+                            className="btn-merge"
+                            onClick={() => {
+                              // Keep the first task, merge others
+                              const updatedTasks = mergeDuplicateTasks(tasks, group, group.tasks[0].id);
+                              group.tasks.slice(1).forEach(t => {
+                                const mergedTask = updatedTasks.find(upd => upd.id === group.tasks[0].id);
+                                if (mergedTask) {
+                                  updateTask(group.tasks[0].id, {
+                                    subtasks: mergedTask.subtasks,
+                                    tags: mergedTask.tags
+                                  });
+                                }
+                              });
+                              // Remove other tasks
+                              group.tasks.slice(1).forEach(t => {
+                                const taskToDelete = updatedTasks.find(upd => upd.id === t.id);
+                                if (!taskToDelete) {
+                                  // Task was already merged, nothing to do
+                                }
+                              });
+                              // Actually delete the duplicate tasks
+                              group.tasks.slice(1).forEach(t => {
+                                const updatedTasks = tasks.filter(task => task.id !== t.id);
+                                Object.assign(tasks, updatedTasks);
+                              });
+                              // Refresh
+                              setDuplicateGroups(prev => prev.filter((_, idx) => idx !== groupIdx));
+                            }}
+                          >
+                            合并任务
+                          </button>
+                          <button 
+                            className="btn-dismiss"
+                            onClick={() => {
+                              dismissDuplicateWarning(group.tasks[0].id, group.tasks[1].id);
+                              setDuplicateGroups(prev => prev.filter((_, idx) => idx !== groupIdx));
+                            }}
+                          >
+                            忽略
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Work Pattern Analysis */}
+              <div className="work-pattern-card">
+                <h4>🧠 AI 工作习惯分析</h4>
+                {workHabitAnalysis ? (
+                  workHabitAnalysis.hasData ? (
+                    <div className="work-pattern-content">
+                      <pre className="work-pattern-summary">{workHabitAnalysis.summary}</pre>
+                      
+                      {/* Hour Distribution Chart */}
+                      {workHabitAnalysis.details?.hourDistribution && (
+                        <div className="work-pattern-chart">
+                          <h5>📊 24小时完成任务分布</h5>
+                          <div className="hour-bars">
+                            {Object.entries(workHabitAnalysis.details.hourDistribution)
+                              .sort(([a], [b]) => a - b)
+                              .map(([hour, count]) => {
+                                const maxCount = Math.max(...Object.values(workHabitAnalysis.details.hourDistribution));
+                                return (
+                                  <div key={hour} className="hour-bar-container" title={`${hour}:00 - ${count}个任务`}>
+                                    <div 
+                                      className="hour-bar-fill"
+                                      style={{ 
+                                        height: `${maxCount > 0 ? (count / maxCount) * 100 : 0}%`,
+                                        backgroundColor: workHabitAnalysis.details.peakHours?.includes(parseInt(hour)) ? '#a855f7' : '#6366f1'
+                                      }}
+                                    />
+                                    <div className="hour-label">{hour}</div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Weekday vs Weekend */}
+                      {workHabitAnalysis.details?.weekdayVsWeekend && (
+                        <div className="weekday-comparison">
+                          <h5>📅 工作日 vs 周末效率</h5>
+                          <div className="comparison-bars">
+                            <div className="comparison-item">
+                              <span className="comparison-label">工作日</span>
+                              <div className="comparison-bar">
+                                <div 
+                                  className="comparison-fill weekday"
+                                  style={{ width: `${Math.min(100, workHabitAnalysis.details.weekdayVsWeekend.weekdayAvg * 20)}%` }}
+                                />
+                              </div>
+                              <span className="comparison-value">{workHabitAnalysis.details.weekdayVsWeekend.weekdayAvg} 任务/天</span>
+                            </div>
+                            <div className="comparison-item">
+                              <span className="comparison-label">周末</span>
+                              <div className="comparison-bar">
+                                <div 
+                                  className="comparison-fill weekend"
+                                  style={{ width: `${Math.min(100, workHabitAnalysis.details.weekdayVsWeekend.weekendAvg * 20)}%` }}
+                                />
+                              </div>
+                              <span className="comparison-value">{workHabitAnalysis.details.weekdayVsWeekend.weekendAvg} 任务/天</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Best Day */}
+                      {workHabitAnalysis.details?.bestDay && (
+                        <div className="best-day-info">
+                          <span className="best-day-badge">🏆 最高效日: {workHabitAnalysis.details.bestDay.name}</span>
+                          <span className="best-day-count">完成 {workHabitAnalysis.details.bestDay.count} 个任务</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="work-pattern-insufficient">
+                      <pre>{workHabitAnalysis.message}</pre>
+                    </div>
+                  )
+                ) : (
+                  <div className="work-pattern-loading">加载中...</div>
+                )}
+              </div>
             </div>
           )}
         </div>

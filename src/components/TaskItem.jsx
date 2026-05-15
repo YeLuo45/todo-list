@@ -5,6 +5,7 @@ import { computeTaskScore, QUADRANT_LABELS, getQuadrant } from '../context/TaskC
 import { getAIPriorityScore } from '../utils/aiPriority';
 import { breakIntoSubtasks, getAPIToken } from '../utils/aiSubtask';
 import { getQuickEstimate, predictCompletionTime } from '../utils/aiPrediction';
+import { improveDescription, formatDiff } from '../utils/aiDescription优化';
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import './TaskItem.css';
 
@@ -24,6 +25,9 @@ export default function TaskItem({ task, onEdit, onDragStart, onDragEnd, isDragg
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [showActions, setShowActions] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isImproving, setIsImproving] = useState(false);
+  const [improvedDesc, setImprovedDesc] = useState(null);
+  const [showDescDiff, setShowDescDiff] = useState(false);
   const cardRef = useRef(null);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
@@ -161,6 +165,45 @@ export default function TaskItem({ task, onEdit, onDragStart, onDragEnd, isDragg
     } finally {
       setIsAIBreaking(false);
     }
+  };
+
+  const handleAIImproveDescription = async () => {
+    const token = getAPIToken();
+    if (!token) {
+      setAiError('请先在设置中配置 AI Token');
+      return;
+    }
+
+    setIsImproving(true);
+    setAiError(null);
+
+    try {
+      const result = await improveDescription(task);
+      setImprovedDesc(result);
+      setShowDescDiff(true);
+    } catch (error) {
+      if (error.message === 'NO_TOKEN') {
+        setAiError('请先在设置中配置 AI Token');
+      } else {
+        setAiError(error.message);
+      }
+      console.error('AI Description Improvement Error:', error);
+    } finally {
+      setIsImproving(false);
+    }
+  };
+
+  const handleApplyImprovedDescription = () => {
+    if (improvedDesc) {
+      updateTask(task.id, { content: improvedDesc.improved });
+      setShowDescDiff(false);
+      setImprovedDesc(null);
+    }
+  };
+
+  const handleCancelImprovedDescription = () => {
+    setShowDescDiff(false);
+    setImprovedDesc(null);
   };
 
   const formatDate = (dateStr) => {
@@ -396,6 +439,24 @@ export default function TaskItem({ task, onEdit, onDragStart, onDragEnd, isDragg
                 <>🧠 AI 拆解</>
               )}
             </button>
+            <button
+              className={`btn-ai-breakdown btn-ai-improve ${isImproving ? 'loading' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAIImproveDescription();
+              }}
+              disabled={isImproving || blocked}
+              title="AI 优化任务描述"
+            >
+              {isImproving ? (
+                <>
+                  <span className="ai-spinner">⏳</span>
+                  AI 优化中...
+                </>
+              ) : (
+                <>✨ AI 优化描述</>
+              )}
+            </button>
             {aiError && (
               <span className="ai-error" onClick={(e) => e.stopPropagation()}>
                 ⚠️ {aiError}
@@ -426,6 +487,33 @@ export default function TaskItem({ task, onEdit, onDragStart, onDragEnd, isDragg
                   )}
                 </label>
               ))}
+            </div>
+          )}
+
+          {/* AI Description Improvement Modal */}
+          {showDescDiff && improvedDesc && (
+            <div className="desc-diff-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="desc-diff-content">
+                <h4>✨ AI 优化建议</h4>
+                <div className="desc-diff-view">
+                  <div className="desc-diff-original">
+                    <div className="diff-label">📝 原描述</div>
+                    <pre>{improvedDesc.original}</pre>
+                  </div>
+                  <div className="desc-diff-improved">
+                    <div className="diff-label">✨ 优化后</div>
+                    <pre>{improvedDesc.improved}</pre>
+                  </div>
+                </div>
+                <div className="desc-diff-actions">
+                  <button className="btn-apply" onClick={handleApplyImprovedDescription}>
+                    ✓ 采纳优化
+                  </button>
+                  <button className="btn-cancel" onClick={handleCancelImprovedDescription}>
+                    取消
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

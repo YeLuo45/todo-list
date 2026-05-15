@@ -457,6 +457,286 @@
   border: 1px solid #e2e8f0;
 }
 
+/* AI Insights Section */
+.ai-insights-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.duplicate-warning-card {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.duplicate-warning-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.warning-icon {
+  font-size: 20px;
+}
+
+.warning-title {
+  font-weight: bold;
+  color: #92400e;
+  flex: 1;
+}
+
+.warning-count {
+  background: #f59e0b;
+  color: white;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.duplicate-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.duplicate-group {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.duplicate-reason {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.duplicate-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.duplicate-task-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.duplicate-task-item .task-title {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.duplicate-task-item .task-due {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.duplicate-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.duplicate-actions button {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+  font-weight: 500;
+}
+
+.btn-merge {
+  background: #22c55e;
+  color: white;
+}
+
+.btn-merge:hover {
+  background: #16a34a;
+}
+
+.btn-dismiss {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.btn-dismiss:hover {
+  background: #f1f5f9;
+}
+
+/* Work Pattern Card */
+.work-pattern-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.work-pattern-card h4 {
+  margin: 0 0 16px 0;
+  color: #1e293b;
+}
+
+.work-pattern-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.work-pattern-summary {
+  background: #f8fafc;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #334155;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.work-pattern-chart h5,
+.weekday-comparison h5 {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.hour-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 100px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.hour-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.hour-bar-fill {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s;
+}
+
+.hour-label {
+  font-size: 9px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.weekday-comparison {
+  background: #f8fafc;
+  padding: 14px;
+  border-radius: 8px;
+}
+
+.comparison-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.comparison-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.comparison-label {
+  width: 50px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.comparison-bar {
+  flex: 1;
+  height: 16px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.comparison-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s;
+}
+
+.comparison-fill.weekday {
+  background: #6366f1;
+}
+
+.comparison-fill.weekend {
+  background: #a855f7;
+}
+
+.comparison-value {
+  font-size: 11px;
+  color: #64748b;
+  min-width: 80px;
+  text-align: right;
+}
+
+.best-day-info {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: 8px;
+}
+
+.best-day-badge {
+  font-weight: bold;
+  color: #92400e;
+}
+
+.best-day-count {
+  font-size: 12px;
+  color: #a16207;
+}
+
+.work-pattern-insufficient {
+  text-align: center;
+  padding: 30px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.work-pattern-insufficient pre {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  white-space: pre-wrap;
+}
+
+.work-pattern-loading {
+  text-align: center;
+  padding: 30px;
+  color: #64748b;
+}
+
 @media (max-width: 480px) {
   .stats-modal {
     width: 95%;

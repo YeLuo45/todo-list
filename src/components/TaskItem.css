@@ -412,6 +412,16 @@
   border-color: var(--border-color);
 }
 
+.btn-ai-improve {
+  border-color: #a855f7;
+  color: #a855f7;
+}
+
+.btn-ai-improve:hover:not(:disabled) {
+  background: #a855f7;
+  color: white;
+}
+
 .ai-spinner {
   animation: spin 1s linear infinite;
 }
@@ -419,6 +429,115 @@
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* AI Description Diff Modal */
+.desc-diff-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.desc-diff-content {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.desc-diff-content h4 {
+  margin: 0 0 16px 0;
+  color: var(--color-primary);
+}
+
+.desc-diff-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.desc-diff-original,
+.desc-diff-improved {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+}
+
+.desc-diff-original {
+  border: 1px solid var(--border-color);
+}
+
+.desc-diff-improved {
+  border: 1px solid #a855f7;
+  background: rgba(168, 85, 247, 0.1);
+}
+
+.diff-label {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+}
+
+.desc-diff-original .diff-label {
+  color: var(--text-muted);
+}
+
+.desc-diff-improved .diff-label {
+  color: #a855f7;
+}
+
+.desc-diff-view pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.desc-diff-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.desc-diff-actions .btn-apply {
+  padding: 8px 20px;
+  background: #a855f7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.desc-diff-actions .btn-apply:hover {
+  background: #9333ea;
+}
+
+.desc-diff-actions .btn-cancel {
+  padding: 8px 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.desc-diff-actions .btn-cancel:hover {
+  background: var(--bg-hover);
 }
 
 .ai-error {

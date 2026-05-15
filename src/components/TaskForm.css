@@ -310,3 +310,134 @@
   align-items: center;
   justify-content: center;
 }
+
+/* AI Improve Button in Form */
+label .btn-ai-improve-form {
+  float: right;
+  padding: 4px 10px;
+  border: 1px solid #a855f7;
+  border-radius: 4px;
+  background: transparent;
+  color: #a855f7;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+label .btn-ai-improve-form:hover:not(:disabled) {
+  background: #a855f7;
+  color: white;
+}
+
+label .btn-ai-improve-form:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* AI Description Diff Modal in Form */
+.desc-diff-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.desc-diff-modal-content {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.desc-diff-modal-content h4 {
+  margin: 0 0 16px 0;
+  color: var(--color-primary);
+}
+
+.desc-diff-modal-content .desc-diff-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.desc-diff-modal-content .desc-diff-original,
+.desc-diff-modal-content .desc-diff-improved {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+}
+
+.desc-diff-modal-content .desc-diff-original {
+  border: 1px solid var(--border-color);
+}
+
+.desc-diff-modal-content .desc-diff-improved {
+  border: 1px solid #a855f7;
+  background: rgba(168, 85, 247, 0.1);
+}
+
+.desc-diff-modal-content .diff-label {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.desc-diff-modal-content .desc-diff-original .diff-label {
+  color: var(--text-muted);
+}
+
+.desc-diff-modal-content .desc-diff-improved .diff-label {
+  color: #a855f7;
+}
+
+.desc-diff-modal-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.desc-diff-modal-content .desc-diff-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.desc-diff-modal-content .desc-diff-actions .btn-apply {
+  padding: 8px 20px;
+  background: #a855f7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.desc-diff-modal-content .desc-diff-actions .btn-apply:hover {
+  background: #9333ea;
+}
+
+.desc-diff-modal-content .desc-diff-actions .btn-cancel {
+  padding: 8px 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.desc-diff-modal-content .desc-diff-actions .btn-cancel:hover {
+  background: var(--bg-hover);
+}

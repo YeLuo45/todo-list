@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTaskContext } from '../context/TaskContext';
+import { getAPIToken } from '../utils/aiSubtask';
+import { improveDescription } from '../utils/aiDescription优化';
 import './TaskForm.css';
 
 export default function TaskForm({ editingTask, onClose }) {
@@ -24,6 +26,9 @@ export default function TaskForm({ editingTask, onClose }) {
   const [endTime, setEndTime] = useState('');
   const [importance, setImportance] = useState(3);
   const [urgency, setUrgency] = useState(3);
+  const [isImproving, setIsImproving] = useState(false);
+  const [improvedDesc, setImprovedDesc] = useState(null);
+  const [showDescDiff, setShowDescDiff] = useState(false);
 
   useEffect(() => {
     if (editingTask) {
@@ -86,6 +91,49 @@ export default function TaskForm({ editingTask, onClose }) {
     setDependsOn((prev) => prev.filter((id) => id !== depId));
   };
 
+  const handleAIImproveDescription = async () => {
+    const token = getAPIToken();
+    if (!token) {
+      alert('请先在设置中配置 AI Token');
+      return;
+    }
+
+    if (!title.trim()) {
+      alert('请先输入任务标题');
+      return;
+    }
+
+    setIsImproving(true);
+
+    try {
+      const taskForImprove = { title, content };
+      const result = await improveDescription(taskForImprove);
+      setImprovedDesc(result);
+      setShowDescDiff(true);
+    } catch (error) {
+      if (error.message === 'NO_TOKEN') {
+        alert('请先在设置中配置 AI Token');
+      } else {
+        alert(error.message);
+      }
+    } finally {
+      setIsImproving(false);
+    }
+  };
+
+  const handleApplyImprovedDescription = () => {
+    if (improvedDesc) {
+      setContent(improvedDesc.improved);
+      setShowDescDiff(false);
+      setImprovedDesc(null);
+    }
+  };
+
+  const handleCancelImprovedDescription = () => {
+    setShowDescDiff(false);
+    setImprovedDesc(null);
+  };
+
   const availableDeps = allTasks.filter(
     (t) => t.id !== editingTask?.id && !dependsOn.includes(t.id)
   );
@@ -136,7 +184,18 @@ export default function TaskForm({ editingTask, onClose }) {
         </div>
 
         <div className="form-group">
-          <label>描述</label>
+          <label>
+            描述
+            <button 
+              type="button" 
+              className="btn-ai-improve-form"
+              onClick={handleAIImproveDescription}
+              disabled={isImproving || !title.trim()}
+              title="AI 优化描述"
+            >
+              {isImproving ? '⏳ 优化中...' : '✨ AI 优化'}
+            </button>
+          </label>
           <textarea value={content} onChange={(e) => setContent(e.target.value)}
             placeholder="任务描述（可选）" rows={3} />
         </div>
@@ -307,6 +366,33 @@ export default function TaskForm({ editingTask, onClose }) {
             </div>
           )}
         </div>
+
+        {/* AI Description Improvement Modal */}
+        {showDescDiff && improvedDesc && (
+          <div className="desc-diff-modal-overlay">
+            <div className="desc-diff-modal-content">
+              <h4>✨ AI 优化建议</h4>
+              <div className="desc-diff-view">
+                <div className="desc-diff-original">
+                  <div className="diff-label">📝 原描述</div>
+                  <pre>{improvedDesc.original || '(无描述)'}</pre>
+                </div>
+                <div className="desc-diff-improved">
+                  <div className="diff-label">✨ 优化后</div>
+                  <pre>{improvedDesc.improved}</pre>
+                </div>
+              </div>
+              <div className="desc-diff-actions">
+                <button className="btn-apply" onClick={handleApplyImprovedDescription}>
+                  ✓ 采纳优化
+                </button>
+                <button className="btn-cancel" onClick={handleCancelImprovedDescription}>
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="form-actions">
           <button type="button" className="btn-cancel" onClick={onClose}>取消</button>
