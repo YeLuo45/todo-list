@@ -1,12 +1,25 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import { getReminderUrgency } from '../utils/reminder';
 import { getAllProjects } from '../utils/projects';
+import GanttSettingsModal from './GanttSettingsModal';
 import './GanttChart.css';
 
-const DAY_WIDTH = 40; // px per day
+const DAY_WIDTH_BASE = 40;
 const ROW_HEIGHT = 44;
 const HEADER_HEIGHT = 60;
+
+const COLUMN_STORAGE_KEY = 'hermes_gantt_columns';
+
+const DEFAULT_COLUMNS = [
+  { id: 'title', label: '任务名', visible: true },
+  { id: 'assignee', label: '负责人', visible: true },
+  { id: 'startDate', label: '开始日期', visible: true },
+  { id: 'endDate', label: '结束日期', visible: true },
+  { id: 'progress', label: '进度', visible: false },
+  { id: 'status', label: '状态', visible: false },
+  { id: 'priority', label: '优先级', visible: true },
+];
 
 function getDays(start, end) {
   const days = [];
@@ -43,13 +56,128 @@ function nextInstance(interval, from) {
   return d;
 }
 
+// Critical Path Algorithm
+function findCriticalPath(tasks) {
+  if (!tasks || tasks.length === 0) return new Set();
+
+  const taskMap = new Map();
+  tasks.forEach(t => taskMap.set(t.id, t));
+
+  // Build dependency graph
+  const graph = new Map();
+  const inDegree = new Map();
+  tasks.forEach(t => {
+    graph.set(t.id, []);
+    inDegree.set(t.id, 0);
+  });
+
+  tasks.forEach(t => {
+    if (t.dependsOn && t.dependsOn.length > 0) {
+      t.dependsOn.forEach(depId => {
+        if (taskMap.has(depId)) {
+          graph.get(depId).push(t.id);
+          inDegree.set(t.id, (inDegree.get(t.id) || 0) + 1);
+        }
+      });
+    }
+  });
+
+  // Find start nodes (no dependencies)
+  const startNodes = tasks.filter(t => !t.dependsOn || t.dependsOn.length === 0);
+
+  // If no start nodes, treat all as starts
+  if (startNodes.length === 0) return new Set();
+
+  // Topological sort with longest path tracking
+  const dist = new Map();
+  const prev = new Map();
+  tasks.forEach(t => dist.set(t.id, 0));
+
+  const queue = startNodes.map(id => id);
+  startNodes.forEach(id => dist.set(id, 1));
+
+  while (queue.length > 0) {
+    const curr = queue.shift();
+    const neighbors = graph.get(curr) || [];
+    for (const neighbor of neighbors) {
+      const currDist = dist.get(curr) || 0;
+      const neighborDist = dist.get(neighbor) || 0;
+      if (currDist + 1 > neighborDist) {
+        dist.set(neighbor, currDist + 1);
+        prev.set(neighbor, curr);
+      }
+      inDegree.set(neighbor, (inDegree.get(neighbor) || 0) - 1);
+      if (inDegree.get(neighbor) === 0) {
+        queue.push(neighbor);
+      }
+    }
+  }
+
+  // Find the longest path
+  let maxDist = 0;
+  let endNode = null;
+  dist.forEach((d, id) => {
+    if (d > maxDist) {
+      maxDist = d;
+      endNode = id;
+    }
+  });
+
+  if (!endNode) return new Set();
+
+  // Backtrack to find critical path
+  const criticalSet = new Set();
+  let node = endNode;
+  while (node) {
+    criticalSet.add(node);
+    node = prev.get(node);
+  }
+
+  return criticalSet;
+}
+
+// Load/save column settings
+function loadColumnSettings() {
+  try {
+    const stored = localStorage.getItem(COLUMN_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Merge with defaults to handle new columns
+      return DEFAULT_COLUMNS.map(col => {
+        const saved = parsed.find(c => c.id === col.id);
+        return saved ? { ...col, visible: saved.visible } : col;
+      });
+    }
+  } catch (e) {
+    console.error('Failed to load column settings', e);
+  }
+  return DEFAULT_COLUMNS;
+}
+
+function saveColumnSettings(columns) {
+  try {
+    localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(columns));
+  } catch (e) {
+    console.error('Failed to save column settings', e);
+  }
+}
+
 export default function GanttChart({ onEditTask }) {
-  const { allTasks, updateTask, createTask } = useTaskContext();
+  const { allTasks, updateTask, createTask, milestones, updateMilestoneColor } = useTaskContext();
   const containerRef = useRef(null);
-  const [viewMode, setViewMode] = useState('month'); // 'month' | 'week' | 'resource'
-  const [dragState, setDragState] = useState(null); // { taskId, edge: 'left'|'right', startX, originStart, originEnd }
-  const [groupBy, setGroupBy] = useState('status'); // 'status' | 'priority'
-  const DAY_WIDTH = viewMode === 'week' ? 80 : viewMode === 'resource' ? 60 : 40; // px per day
+  const [viewMode, setViewMode] = useState('month');
+  const [dragState, setDragState] = useState(null);
+  const [groupBy, setGroupBy] = useState('status');
+  const [showCriticalPath, setShowCriticalPath] = useState(false);
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
+  const [showGanttSettings, setShowGanttSettings] = useState(false);
+  const [columnSettings, setColumnSettings] = useState(() => loadColumnSettings());
+  const [draggingColIdx, setDraggingColIdx] = useState(null);
+  const dragItem = useRef(null);
+  const dragOverItem = useRef(null);
+  const [hoveredTask, setHoveredTask] = useState(null);
+
+  const DAY_WIDTH = viewMode === 'week' ? 80 : viewMode === 'resource' ? 60 : 40;
   const ROW_HEIGHT = 44;
   const HEADER_HEIGHT = 60;
 
@@ -58,6 +186,11 @@ export default function GanttChart({ onEditTask }) {
     () => allTasks.filter((t) => t.dueDate || t.startTime),
     [allTasks]
   );
+
+  // Critical path calculation
+  const criticalPathSet = useMemo(() => {
+    return findCriticalPath(tasks);
+  }, [tasks]);
 
   const timelineRange = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -81,8 +214,20 @@ export default function GanttChart({ onEditTask }) {
       if (d < start) start = d;
       if (d > end) end = d;
     });
+
+    // Also include milestone deadlines
+    milestones.forEach((m) => {
+      if (m.deadline) {
+        const d = parseDate(m.deadline);
+        if (d) {
+          if (d < start) start = d;
+          if (d > end) end = d;
+        }
+      }
+    });
+
     return { start, end };
-  }, [tasks, viewMode]);
+  }, [tasks, viewMode, milestones]);
 
   const timelineStart = timelineRange.start;
   const timelineEnd = timelineRange.end;
@@ -104,13 +249,15 @@ export default function GanttChart({ onEditTask }) {
     const rightEdge = Math.min(days.length - 1, dateOffset(end)) * DAY_WIDTH + DAY_WIDTH;
     const width = Math.max(DAY_WIDTH * 0.5, rightEdge - left);
 
-    let color = '#3b82f6'; // blue: in-progress
-    if (task.status === 'done') color = '#9ca3af'; // gray: done
-    else if (task.status === 'todo') color = '#22c55e'; // green: todo
+    let color = '#3b82f6';
+    if (task.status === 'done') color = '#9ca3af';
+    else if (task.status === 'todo') color = '#22c55e';
     const urgency = getReminderUrgency(task);
-    if (urgency === 'overdue') color = '#ef4444'; // red: overdue
+    if (urgency === 'overdue') color = '#ef4444';
 
-    return { left, width, backgroundColor: color };
+    const isCritical = showCriticalPath && criticalPathSet.has(task.id);
+
+    return { left, width, backgroundColor: color, isCritical };
   };
 
   // Drag handlers
@@ -147,7 +294,7 @@ export default function GanttChart({ onEditTask }) {
       newEnd.setDate(newEnd.getDate() + daysDelta);
       updateTask(taskId, { dueDate: newEnd.toISOString() });
     }
-  }, [dragState, allTasks, updateTask]);
+  }, [dragState, allTasks, updateTask, DAY_WIDTH]);
 
   const handleMouseUp = useCallback(() => {
     setDragState(null);
@@ -163,7 +310,6 @@ export default function GanttChart({ onEditTask }) {
       });
       return groups;
     }
-    // groupBy === 'status'
     const groups = { todo: [], 'in-progress': [], done: [] };
     tasks.forEach((t) => {
       if (groups[t.status]) groups[t.status].push(t);
@@ -180,11 +326,59 @@ export default function GanttChart({ onEditTask }) {
 
   const todayOffset = dateOffset(new Date());
 
+  // Milestone positions on timeline
+  const milestoneMarkers = useMemo(() => {
+    return milestones.map((m) => {
+      const d = parseDate(m.deadline);
+      if (!d) return null;
+      const offset = dateOffset(d);
+      if (offset < 0 || offset > days.length) return null;
+      return {
+        ...m,
+        offset: offset * DAY_WIDTH + DAY_WIDTH / 2,
+      };
+    }).filter(Boolean);
+  }, [milestones, dateOffset, days.length, DAY_WIDTH]);
+
+  // Column settings handlers
+  const handleColDragStart = (idx) => {
+    dragItem.current = idx;
+    setDraggingColIdx(idx);
+  };
+
+  const handleColDragEnter = (idx) => {
+    dragOverItem.current = idx;
+    if (dragItem.current === idx) return;
+    const newOrder = [...columnSettings];
+    const draggedItem = newOrder[dragItem.current];
+    newOrder.splice(dragItem.current, 1);
+    newOrder.splice(idx, 0, draggedItem);
+    dragItem.current = idx;
+    setColumnSettings(newOrder);
+  };
+
+  const handleColDragEnd = () => {
+    setDraggingColIdx(null);
+    dragItem.current = null;
+    dragOverItem.current = null;
+    saveColumnSettings(columnSettings);
+  };
+
+  const toggleColumnVisible = (colId) => {
+    const updated = columnSettings.map(col =>
+      col.id === colId ? { ...col, visible: !col.visible } : col
+    );
+    setColumnSettings(updated);
+    saveColumnSettings(updated);
+  };
+
+  const visibleColumns = columnSettings.filter(col => col.visible);
+
   return (
     <div className="gantt-wrapper">
       <div className="gantt-header-bar">
         <span>📊 甘特图 — 共 {tasks.length} 个有时间跨度的任务</span>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             className={`gantt-group-btn ${viewMode === 'month' ? 'active' : ''}`}
             onClick={() => setViewMode('month')}
@@ -208,12 +402,71 @@ export default function GanttChart({ onEditTask }) {
             className={`gantt-group-btn ${groupBy === 'priority' ? 'active' : ''}`}
             onClick={() => setGroupBy('priority')}
           >按优先级</button>
+          <button
+            className={`gantt-group-btn ${showCriticalPath ? 'active' : ''}`}
+            onClick={() => setShowCriticalPath(!showCriticalPath)}
+          >🔴 关键路径</button>
+          <button
+            className="gantt-group-btn"
+            onClick={() => setShowColumnSettings(!showColumnSettings)}
+          >📋 列设置</button>
+          <button
+            className="gantt-group-btn"
+            onClick={() => setShowGanttSettings(true)}
+          >⚙️ 设置</button>
         </div>
       </div>
+
+      {/* Column Settings Panel */}
+      {showColumnSettings && (
+        <div className="gantt-column-settings">
+          <div className="column-settings-header">
+            <span>选择显示的列（可拖拽调整顺序）</span>
+            <button className="btn-close-panel" onClick={() => setShowColumnSettings(false)}>×</button>
+          </div>
+          <div className="column-settings-list">
+            {columnSettings.map((col, idx) => (
+              <div
+                key={col.id}
+                className={`column-settings-item ${draggingColIdx === idx ? 'dragging' : ''} ${!col.visible ? 'hidden' : ''}`}
+                draggable
+                onDragStart={() => handleColDragStart(idx)}
+                onDragEnter={() => handleColDragEnter(idx)}
+                onDragEnd={handleColDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <span className="column-drag-handle">⋮⋮</span>
+                <label className="column-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={col.visible}
+                    onChange={() => toggleColumnVisible(col.id)}
+                  />
+                  {col.label}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Gantt Settings Modal */}
+      {showGanttSettings && (
+        <GanttSettingsModal
+          milestones={milestones}
+          onMilestoneColorChange={(id, color) => updateMilestoneColor(id, color)}
+          onClose={() => setShowGanttSettings(false)}
+        />
+      )}
+
       <div className="gantt-scroll" ref={containerRef}>
         {/* Day headers */}
         <div className="gantt-header" style={{ width: totalWidth + 200 }}>
-          <div className="gantt-label-col">任务</div>
+          <div className="gantt-label-col">
+            {visibleColumns.map(col => (
+              <div key={col.id} className="gantt-col-header">{col.label}</div>
+            ))}
+          </div>
           <div className="gantt-timeline-header" style={{ width: totalWidth }}>
             {days.map((day, i) => (
               <div
@@ -228,7 +481,6 @@ export default function GanttChart({ onEditTask }) {
         </div>
 
         {/* Task rows */}
-        {/* Resource View: projects as rows */}
         {viewMode === 'resource' && (
           <ResourceView
             tasks={tasks}
@@ -239,10 +491,12 @@ export default function GanttChart({ onEditTask }) {
             ROW_HEIGHT={ROW_HEIGHT}
             onEditTask={onEditTask}
             getBarStyle={getBarStyle}
+            showCriticalPath={showCriticalPath}
+            criticalPathSet={criticalPathSet}
+            milestoneMarkers={milestoneMarkers}
           />
         )}
 
-        {/* Standard View: tasks grouped */}
         {viewMode !== 'resource' && (
         <div
           className="gantt-body"
@@ -251,6 +505,21 @@ export default function GanttChart({ onEditTask }) {
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
+          {/* Milestone markers */}
+          {milestoneMarkers.map((m) => (
+            <div
+              key={m.id}
+              className="gantt-milestone-marker"
+              style={{ left: m.offset + 200 }}
+              title={`🎯 ${m.title}`}
+            >
+              <div
+                className="milestone-diamond"
+                style={{ backgroundColor: m.color || '#8b5cf6' }}
+              />
+            </div>
+          ))}
+
           {Object.entries(grouped).map(([groupKey, groupTasks]) => {
             if (groupTasks.length === 0) return null;
             return (
@@ -266,22 +535,63 @@ export default function GanttChart({ onEditTask }) {
                   />
                   {groupTasks.map((task) => {
                     const style = getBarStyle(task);
+                    const isCritical = showCriticalPath && criticalPathSet.has(task.id);
                     return (
                       <div key={task.id} className="gantt-row" style={{ height: ROW_HEIGHT }}>
-                        <div className="gantt-task-bar"
-                          style={{ left: style.left, width: style.width, backgroundColor: style.backgroundColor }}
-                          onClick={() => onEditTask(task)}
-                          title={`${task.title}\n开始: ${task.startTime ? new Date(task.startTime).toLocaleDateString() : '未设置'}\n截止: ${task.dueDate || '未设置'}`}
-                        >
+                        {/* Task info columns */}
+                        <div className="gantt-task-info">
+                          {visibleColumns.map(col => (
+                            <div key={col.id} className="gantt-task-cell">
+                              {col.id === 'title' && (
+                                <span className="task-title-cell">{task.title}</span>
+                              )}
+                              {col.id === 'assignee' && (
+                                <span>{task.assignee || '-'}</span>
+                              )}
+                              {col.id === 'startDate' && (
+                                <span>{task.startTime ? new Date(task.startTime).toLocaleDateString('zh-CN') : '-'}</span>
+                              )}
+                              {col.id === 'endDate' && (
+                                <span>{task.dueDate ? new Date(task.dueDate).toLocaleDateString('zh-CN') : '-'}</span>
+                              )}
+                              {col.id === 'progress' && (
+                                <span>{task.progress || 0}%</span>
+                              )}
+                              {col.id === 'status' && (
+                                <span className={`status-badge ${task.status}`}>
+                                  {task.status === 'todo' ? '待办' : task.status === 'in-progress' ? '进行中' : '完成'}
+                                </span>
+                              )}
+                              {col.id === 'priority' && (
+                                <span className={`priority-badge ${task.priority}`}>
+                                  {task.priority || 'P1'}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="gantt-task-bar-wrapper">
                           <div
-                            className="gantt-bar-handle left"
-                            onMouseDown={(e) => handleMouseDown(e, task.id, 'left')}
-                          />
-                          <span className="gantt-bar-label">{task.title}</span>
-                          <div
-                            className="gantt-bar-handle right"
-                            onMouseDown={(e) => handleMouseDown(e, task.id, 'right')}
-                          />
+                            className={`gantt-task-bar ${isCritical ? 'critical' : ''}`}
+                            style={{ left: style.left, width: style.width, backgroundColor: style.backgroundColor }}
+                            onClick={() => onEditTask(task)}
+                            onMouseEnter={() => isCritical && setHoveredTask(task.id)}
+                            onMouseLeave={() => setHoveredTask(null)}
+                            title={`${task.title}\n开始: ${task.startTime ? new Date(task.startTime).toLocaleDateString() : '未设置'}\n截止: ${task.dueDate || '未设置'}`}
+                          >
+                            {hoveredTask === task.id && isCritical && (
+                              <span className="critical-path-label">🔴 关键路径</span>
+                            )}
+                            <div
+                              className="gantt-bar-handle left"
+                              onMouseDown={(e) => handleMouseDown(e, task.id, 'left')}
+                            />
+                            <span className="gantt-bar-label">{task.title}</span>
+                            <div
+                              className="gantt-bar-handle right"
+                              onMouseDown={(e) => handleMouseDown(e, task.id, 'right')}
+                            />
+                          </div>
                         </div>
                       </div>
                     );
@@ -300,14 +610,13 @@ export default function GanttChart({ onEditTask }) {
   );
 }
 
-function ResourceView({ tasks, days, dateOffset, todayOffset, DAY_WIDTH, ROW_HEIGHT, onEditTask, getBarStyle }) {
+function ResourceView({ tasks, days, dateOffset, todayOffset, DAY_WIDTH, ROW_HEIGHT, onEditTask, getBarStyle, showCriticalPath, criticalPathSet, milestoneMarkers }) {
   const projects = useMemo(() => getAllProjects(), []);
   const noProjectTasks = useMemo(
     () => tasks.filter((t) => !t.projectId),
     [tasks]
   );
 
-  // Build project rows: { project, tasks }
   const projectRows = useMemo(() => {
     return projects.map((proj) => ({
       project: proj,
@@ -332,7 +641,6 @@ function ResourceView({ tasks, days, dateOffset, todayOffset, DAY_WIDTH, ROW_HEI
     return style;
   };
 
-  // Calculate load: { [projectId]: { [dateStr]: task[] } }
   const loadData = useMemo(() => {
     const data = {};
     allRows.forEach(({ project, tasks: rowTasks }) => {
@@ -350,7 +658,6 @@ function ResourceView({ tasks, days, dateOffset, todayOffset, DAY_WIDTH, ROW_HEI
         });
       });
     });
-    // Max load across all projects and days
     let max = 1;
     Object.values(data).forEach((byDate) => {
       Object.values(byDate).forEach((tasks) => { if (tasks.length > max) max = tasks.length; });
@@ -358,7 +665,7 @@ function ResourceView({ tasks, days, dateOffset, todayOffset, DAY_WIDTH, ROW_HEI
     return { data, max };
   }, [allRows, days]);
 
-  const [hoverInfo, setHoverInfo] = useState(null); // { projectKey, dateStr, x, y, tasks }
+  const [hoverInfo, setHoverInfo] = useState(null);
 
   const handleLoadHover = (e, projectKey, dateStr) => {
     const tasks = loadData.data[projectKey]?.[dateStr] || [];
@@ -379,10 +686,11 @@ function ResourceView({ tasks, days, dateOffset, todayOffset, DAY_WIDTH, ROW_HEI
             <div className="gantt-rows" style={{ width: days.length * DAY_WIDTH }}>
               {rowTasks.map((task) => {
                 const style = getProjectBarStyle(task, project);
+                const isCritical = showCriticalPath && criticalPathSet.has(task.id);
                 return (
                   <div key={task.id} className="gantt-row" style={{ height: ROW_HEIGHT }}>
                     <div
-                      className="gantt-task-bar"
+                      className={`gantt-task-bar ${isCritical ? 'critical' : ''}`}
                       style={{ left: style.left, width: style.width, backgroundColor: style.backgroundColor }}
                       onClick={() => onEditTask(task)}
                       title={`${task.title}\n开始: ${task.startTime ? new Date(task.startTime).toLocaleDateString() : '未设置'}\n截止: ${task.dueDate || '未设置'}`}

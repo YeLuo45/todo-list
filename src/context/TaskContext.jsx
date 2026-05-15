@@ -344,6 +344,13 @@ export function TaskProvider({ children }) {
     return false;
   }, [tasks]);
 
+  // Update milestone color
+  const updateMilestoneColor = useCallback((milestoneId, color) => {
+    setMilestones(prev => prev.map(m =>
+      m.id === milestoneId ? { ...m, color } : m
+    ));
+  }, []);
+
   const filteredTasks = tasks
     .filter((task) => {
       // Hide completed filter
@@ -417,6 +424,7 @@ export function TaskProvider({ children }) {
         batchUpdateTasks,
         isTaskBlocked,
         wouldCreateCycle,
+        updateMilestoneColor,
       }}
     >
       {children}
