@@ -17,8 +17,10 @@ import ProjectSidebar from './components/ProjectSidebar';
 import MobileToolbar from './components/MobileToolbar';
 import OfflineBanner from './components/OfflineBanner';
 import { useSync } from './hooks/useSync';
+import { useSyncWorker } from './hooks/useSyncWorker';
 import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import ConflictModal from './components/ConflictModal';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
 import { getGistConfig, createBackupGist } from './utils/gistSync';
 import { useAppStore } from './store/useAppStore';
@@ -40,6 +42,15 @@ function AppContent() {
   const filterBarRef = useRef();
   const recognitionRef = useRef(null);
 
+  // SharedWorker 跨标签页同步状态
+  const [syncConnected, setSyncConnected] = useState(false);
+  const [lastHeartbeat, setLastHeartbeat] = useState(null);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // 冲突解决状态
+  const [showConflict, setShowConflict] = useState(false);
+  const [conflictData, setConflictData] = useState({ local: null, remote: null });
+
   const { theme, toggleTheme } = useTheme();
 
   const {
@@ -50,6 +61,25 @@ function AppContent() {
     login,
     sync,
   } = useSync(allTasks, setTasks);
+
+  // SharedWorker 跨标签页同步
+  const { connected, lastHeartbeat: swHeartbeat, pendingCount: swPending, notifyTaskChange } = useSyncWorker((changedTask) => {
+    // 跨标签页任务变更：更新 tasks
+    setTasks(prev => {
+      const idx = prev.findIndex(t => t.id === changedTask.id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = changedTask;
+        return updated;
+      }
+      return prev;
+    });
+  });
+
+  // 同步 SharedWorker 状态到 React state
+  useEffect(() => { setSyncConnected(connected); }, [connected]);
+  useEffect(() => { setLastHeartbeat(swHeartbeat); }, [swHeartbeat]);
+  useEffect(() => { setPendingCount(swPending); }, [swPending]);
 
   const autoBackup = useAppStore((s) => s.autoBackup);
   const backupInterval = useAppStore((s) => s.backupInterval);
@@ -221,6 +251,8 @@ function AppContent() {
             <SyncStatus
               status={status}
               lastSynced={lastSynced}
+              syncConnected={syncConnected}
+              pendingCount={pendingCount}
               onClick={() => setShowSettings(true)}
             />
           </div>
@@ -355,6 +387,38 @@ function AppContent() {
         <GoogleCalendarSyncModal
           tasks={allTasks}
           onClose={() => setShowGoogleCalendarSync(false)}
+        />
+      )}
+
+      {showConflict && (
+        <ConflictModal
+          visible={showConflict}
+          localData={{ tasks: allTasks, savedAt: lastSynced }}
+          remoteData={conflictData.remote}
+          onLocalWins={() => {
+            setShowConflict(false);
+            addToast('已保留本地版本');
+          }}
+          onRemoteWins={() => {
+            if (conflictData.remote?.tasks) {
+              setTasks(conflictData.remote.tasks);
+            }
+            setShowConflict(false);
+            addToast('已保留远程版本');
+          }}
+          onMerge={() => {
+            if (conflictData.remote?.tasks) {
+              const merged = [...allTasks];
+              conflictData.remote.tasks.forEach(remoteTask => {
+                if (!merged.find(t => t.id === remoteTask.id)) {
+                  merged.push(remoteTask);
+                }
+              });
+              setTasks(merged);
+            }
+            setShowConflict(false);
+            addToast('已合并两个版本');
+          }}
         />
       )}
 
