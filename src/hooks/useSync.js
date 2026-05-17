@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getFile, upsertFile, parseRepo } from '../utils/githubApi';
+import { useAppStore } from '../store/useAppStore';
 
 const TOKEN_KEY = 'github_token_sync';
 const REPO_KEY = 'github_repo_sync';
@@ -9,28 +10,24 @@ const DEBOUNCE_MS = 3000;
 export function useSync(tasks, setTasks) {
   const [status, setStatus] = useState('idle'); // idle|syncing|synced|error|offline|unauthenticated
   const [lastSynced, setLastSynced] = useState(null);
-  const [githubToken, setGithubToken] = useState(() => localStorage.getItem(TOKEN_KEY));
-  const [githubRepo, setGithubRepo] = useState(() => localStorage.getItem(REPO_KEY) || 'YeLuo45/todo-list');
-  const [sha, setSha] = useState(null);
+  const githubToken = useAppStore((s) => s.githubToken);
+  const githubRepo = useAppStore((s) => s.githubRepo);
+  const syncSha = useAppStore((s) => s.syncSha);
 
   const debounceTimer = useRef(null);
   const isLoadingRef = useRef(false); // 防止 pull→tasks变化→push 的循环
 
   // 保存 token/repo
   const saveSettings = useCallback((token, repo) => {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    if (repo) localStorage.setItem(REPO_KEY, repo);
-    setGithubToken(token);
-    setGithubRepo(repo || 'YeLuo45/todo-list');
+    if (token) useAppStore.getState().setGithubToken(token);
+    if (repo) useAppStore.getState().setGithubRepo(repo || 'YeLuo45/todo-list');
   }, []);
 
   const clearSettings = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REPO_KEY);
-    setGithubToken(null);
-    setGithubRepo('YeLuo45/todo-list');
+    useAppStore.getState().setGithubToken(null);
+    useAppStore.getState().setGithubRepo('YeLuo45/todo-list');
+    useAppStore.getState().setSyncSha(null);
     setStatus('idle');
-    setSha(null);
     setLastSynced(null);
   }, []);
 
@@ -45,11 +42,11 @@ export function useSync(tasks, setTasks) {
       const { owner, repo } = parseRepo(githubRepo);
       const result = await getFile(owner, repo, FILE_PATH, githubToken);
       if (result.content) {
-        setSha(result.sha);
+        useAppStore.getState().setSyncSha(result.sha);
         setTasks(result.content);
         localStorage.setItem('hermes_todos_v2', JSON.stringify(result.content));
       } else {
-        setSha(null);
+        useAppStore.getState().setSyncSha(null);
       }
       setLastSynced(new Date());
       setStatus('synced');
@@ -73,14 +70,14 @@ export function useSync(tasks, setTasks) {
       try {
         const { owner, repo } = parseRepo(githubRepo);
         // 获取最新 SHA
-        let currentSha = sha;
+        let currentSha = syncSha;
         try {
           const result = await getFile(owner, repo, FILE_PATH, githubToken);
-          if (result.sha) { currentSha = result.sha; setSha(result.sha); }
+          if (result.sha) { currentSha = result.sha; useAppStore.getState().setSyncSha(result.sha); }
         } catch (e) { /* 文件不存在，后续创建 */ }
 
         const commitSha = await upsertFile(owner, repo, FILE_PATH, tasksToSave, githubToken, currentSha);
-        setSha(commitSha);
+        useAppStore.getState().setSyncSha(commitSha);
         setLastSynced(new Date());
         setStatus('synced');
       } catch (err) {
@@ -88,7 +85,7 @@ export function useSync(tasks, setTasks) {
         setStatus('error');
       }
     }, DEBOUNCE_MS);
-  }, [githubToken, githubRepo, sha]);
+  }, [githubToken, githubRepo, syncSha]);
 
   // 主动同步
   const sync = useCallback(() => pull(), [pull]);

@@ -3,13 +3,17 @@
  * Sends notifications via Slack Webhook
  */
 
-const SLACK_WEBHOOK_STORAGE = 'hermes_slack_webhook_url';
+import { useAppStore } from '../store/useAppStore';
+
+const SLACK_WEBHOOK_STORAGE = 'hermes_slack_webhook_v1';
 
 /**
  * Get stored webhook URL
  */
 export function getSlackWebhookUrl() {
-  return localStorage.getItem(SLACK_WEBHOOK_STORAGE) || '';
+  const store = useAppStore.getState();
+  // 优先从 store 读取，如果没有则尝试 legacy key
+  return store.slackWebhookUrl || localStorage.getItem(SLACK_WEBHOOK_STORAGE) || '';
 }
 
 /**
@@ -17,8 +21,10 @@ export function getSlackWebhookUrl() {
  */
 export function setSlackWebhookUrl(url) {
   if (url && url.trim()) {
+    useAppStore.getState().setSlackWebhookUrl(url.trim());
     localStorage.setItem(SLACK_WEBHOOK_STORAGE, url.trim());
   } else {
+    useAppStore.getState().setSlackWebhookUrl('');
     localStorage.removeItem(SLACK_WEBHOOK_STORAGE);
   }
 }

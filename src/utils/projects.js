@@ -1,3 +1,5 @@
+import { useAppStore } from '../store/useAppStore';
+
 const PROJECTS_KEY = 'hermes-projects-v1';
 const TAG_GROUPS_KEY = 'hermes-tag-groups-v1';
 
@@ -12,66 +14,70 @@ export const TAG_COLORS = [
   { value: '#FF9FF3', label: '粉' },
 ];
 
+// 内部读取辅助
+function getFromStore() {
+  return useAppStore.getState();
+}
+
 export function getTagColors() {
-  try {
-    return JSON.parse(localStorage.getItem('hermes-tag-colors-v1') || '{}');
-  } catch { return {}; }
+  const store = useAppStore.getState();
+  // 优先用 hermesTagColors（兼容新旧 key）
+  return Object.keys(store.hermesTagColors).length > 0 
+    ? store.hermesTagColors 
+    : store.tagColors;
 }
 
 export function saveTagColors(colors) {
-  localStorage.setItem('hermes-tag-colors-v1', JSON.stringify(colors));
+  useAppStore.getState().setHermesTagColors(colors);
+  useAppStore.getState().setTagColors(colors);
 }
 
-// Tag Groups
 export function getTagGroups() {
-  try {
-    return JSON.parse(localStorage.getItem(TAG_GROUPS_KEY) || '[]');
-  } catch { return []; }
+  return useAppStore.getState().tagGroups;
 }
 
 export function saveTagGroups(groups) {
-  localStorage.setItem(TAG_GROUPS_KEY, JSON.stringify(groups));
+  useAppStore.getState().setTagGroups(groups);
 }
 
 export function createTagGroup(name, color = '#48DBFB', tags = []) {
-  const groups = getTagGroups();
+  const s = useAppStore.getState();
   const g = {
     id: `taggrp-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
     name,
     color,
-    tags, // array of tag strings
+    tags,
     createdAt: new Date().toISOString(),
   };
-  groups.push(g);
-  saveTagGroups(groups);
+  s.setTagGroups([...s.tagGroups, g]);
   return g;
 }
 
 export function updateTagGroup(id, updates) {
-  const groups = getTagGroups();
+  const s = useAppStore.getState();
+  const groups = [...s.tagGroups];
   const idx = groups.findIndex((g) => g.id === id);
   if (idx < 0) return;
   groups[idx] = { ...groups[idx], ...updates };
-  saveTagGroups(groups);
+  s.setTagGroups(groups);
   return groups[idx];
 }
 
 export function deleteTagGroup(id) {
-  saveTagGroups(getTagGroups().filter((g) => g.id !== id));
+  const s = useAppStore.getState();
+  s.setTagGroups(s.tagGroups.filter((g) => g.id !== id));
 }
 
 export function getAllProjects() {
-  try {
-    return JSON.parse(localStorage.getItem(PROJECTS_KEY) || '[]');
-  } catch { return []; }
+  return useAppStore.getState().projects;
 }
 
 export function saveProjects(projects) {
-  localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+  useAppStore.getState().setProjects(projects);
 }
 
 export function createProject(name, parentId = null, color = '#48DBFB') {
-  const projects = getAllProjects();
+  const s = useAppStore.getState();
   const project = {
     id: `proj-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     name,
@@ -79,27 +85,27 @@ export function createProject(name, parentId = null, color = '#48DBFB') {
     color,
     createdAt: new Date().toISOString(),
   };
-  projects.push(project);
-  saveProjects(projects);
+  s.setProjects([...s.projects, project]);
   return project;
 }
 
 export function updateProject(id, updates) {
-  const projects = getAllProjects();
+  const s = useAppStore.getState();
+  const projects = [...s.projects];
   const idx = projects.findIndex((p) => p.id === id);
   if (idx < 0) return;
   projects[idx] = { ...projects[idx], ...updates };
-  saveProjects(projects);
+  s.setProjects(projects);
   return projects[idx];
 }
 
 export function deleteProject(id) {
-  const projects = getAllProjects().filter((p) => p.id !== id && p.parentId !== id);
-  saveProjects(projects);
+  const s = useAppStore.getState();
+  s.setProjects(s.projects.filter((p) => p.id !== id && p.parentId !== id));
 }
 
 export function getProjectTree() {
-  const projects = getAllProjects();
+  const projects = useAppStore.getState().projects;
   const roots = projects.filter((p) => !p.parentId);
   const buildTree = (parentId) =>
     projects.filter((p) => p.parentId === parentId).map((p) => ({

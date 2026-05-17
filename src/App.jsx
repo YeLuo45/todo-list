@@ -15,11 +15,13 @@ import GistSyncModal from './components/GistSyncModal';
 import GoogleCalendarSyncModal from './components/GoogleCalendarSyncModal';
 import ProjectSidebar from './components/ProjectSidebar';
 import MobileToolbar from './components/MobileToolbar';
+import OfflineBanner from './components/OfflineBanner';
 import { useSync } from './hooks/useSync';
 import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
-import { getGistConfig, getLastBackupTime, setLastBackupTime, createBackupGist } from './utils/gistSync';
+import { getGistConfig, createBackupGist } from './utils/gistSync';
+import { useAppStore } from './store/useAppStore';
 import './App.css';
 
 function AppContent() {
@@ -49,6 +51,11 @@ function AppContent() {
     sync,
   } = useSync(allTasks, setTasks);
 
+  const autoBackup = useAppStore((s) => s.autoBackup);
+  const backupInterval = useAppStore((s) => s.backupInterval);
+  const lastBackup = useAppStore((s) => s.lastBackup);
+  const setLastBackup = useAppStore((s) => s.setLastBackup);
+
   useEffect(() => {
     requestNotificationPermission();
     checkReminders(allTasks, (task) => {
@@ -58,17 +65,15 @@ function AppContent() {
     });
 
     // 自动备份检查
-    if (localStorage.getItem('auto-backup') === 'true') {
+    if (autoBackup) {
       const config = getGistConfig();
-      const interval = parseInt(localStorage.getItem('backup-interval') || '1');
-      const lastBackup = getLastBackupTime();
-      if (config?.pat && (!lastBackup || Date.now() - new Date(lastBackup).getTime() > interval * 24 * 60 * 60 * 1000)) {
+      if (config?.pat && (!lastBackup || Date.now() - new Date(lastBackup).getTime() > backupInterval * 24 * 60 * 60 * 1000)) {
         createBackupGist(config.pat, allTasks)
-          .then(() => { setLastBackupTime(new Date().toISOString()); })
+          .then(() => { setLastBackup(new Date().toISOString()); })
           .catch(() => {});
       }
     }
-  }, []);
+  }, [autoBackup, backupInterval, lastBackup, setLastBackup, allTasks]);
 
   // Listen for cross-component view switch events (e.g. from Dashboard quick actions)
   useEffect(() => {
@@ -197,6 +202,7 @@ function AppContent() {
 
   return (
     <div className="app">
+      <OfflineBanner />
       {isRecording && <div className="voice-recording">🎤 正在录音...</div>}
 
       <header className="app-header">

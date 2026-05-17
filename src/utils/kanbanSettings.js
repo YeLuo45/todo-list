@@ -1,7 +1,6 @@
 // Kanban Settings Storage Utility
 
-const COLUMN_ORDER_KEY = 'hermes_kanban_column_order';
-const LANE_COLORS_KEY = 'hermes_lane_colors';
+import { useAppStore } from '../store/useAppStore';
 
 // Default column configuration
 export const DEFAULT_COLUMNS = [
@@ -21,71 +20,63 @@ export const LANE_COLOR_PRESETS = [
   { value: '#6b7280', label: '灰' },
 ];
 
-// Get column order from storage
-export function getColumnOrder() {
-  try {
-    const stored = localStorage.getItem(COLUMN_ORDER_KEY);
-    if (stored) {
-      const order = JSON.parse(stored);
-      // Validate that all default columns are present
-      const defaultIds = DEFAULT_COLUMNS.map(c => c.id);
-      const storedIds = order.filter(id => defaultIds.includes(id));
-      if (storedIds.length === defaultIds.length) {
-        return order;
-      }
-    }
-  } catch (e) {
-    console.error('Failed to load column order:', e);
-  }
-  return DEFAULT_COLUMNS.map(c => c.id);
+// Hook for column order (React context)
+export function useColumnOrder() {
+  return useAppStore((s) => s.columnOrder);
 }
 
-// Save column order to storage
-export function saveColumnOrder(order) {
-  localStorage.setItem(COLUMN_ORDER_KEY, JSON.stringify(order));
+// Hook for lane colors (React context)
+export function useLaneColors() {
+  return useAppStore((s) => s.laneColors);
+}
+
+// Get all lane colors (for non-React context)
+export function getLaneColors() {
+  return useAppStore.getState().laneColors;
+}
+
+// Save all lane colors (for non-React context)
+export function saveLaneColors(colors) {
+  useAppStore.getState().setLaneColors(colors);
+}
+
+// Get column order from store (for non-React context)
+export function getColumnOrder() {
+  return useAppStore.getState().columnOrder;
 }
 
 // Get ordered columns based on saved order
 export function getOrderedColumns() {
-  const order = getColumnOrder();
+  const order = useAppStore.getState().columnOrder;
   return order.map(id => DEFAULT_COLUMNS.find(c => c.id === id)).filter(Boolean);
 }
 
-// Get lane colors from storage
-export function getLaneColors() {
-  try {
-    const stored = localStorage.getItem(LANE_COLORS_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (e) {
-    console.error('Failed to load lane colors:', e);
-  }
-  return {};
+// Save column order to store
+export function saveColumnOrder(order) {
+  useAppStore.getState().setColumnOrder(order);
 }
 
-// Save lane colors to storage
-export function saveLaneColors(colors) {
-  localStorage.setItem(LANE_COLORS_KEY, JSON.stringify(colors));
-}
-
-// Get a specific lane's color
+// Get a specific lane's color (for non-React context)
 export function getLaneColor(laneKey) {
-  const colors = getLaneColors();
+  const colors = useAppStore.getState().laneColors;
   return colors[laneKey] || null;
+}
+
+// Hook for getting a specific lane's color (React context)
+export function useLaneColor(laneKey) {
+  return useAppStore((s) => s.laneColors[laneKey] || null);
 }
 
 // Set a specific lane's color
 export function setLaneColor(laneKey, color) {
-  const colors = getLaneColors();
-  colors[laneKey] = color;
-  saveLaneColors(colors);
+  useAppStore.getState().setLaneColor(laneKey, color);
 }
 
 // Auto-assign color to a project that has no color set
 // Returns the assigned color or null if no assignment needed
-export function autoAssignProjectColor(projectId, usedColors = {}) {
-  const colors = getLaneColors();
+export function autoAssignProjectColor(projectId) {
+  const store = useAppStore.getState();
+  const colors = store.laneColors;
   
   // If project already has a color, return that
   if (colors[projectId]) {
@@ -96,14 +87,12 @@ export function autoAssignProjectColor(projectId, usedColors = {}) {
   const usedSet = new Set(Object.values(colors));
   for (const preset of LANE_COLOR_PRESETS) {
     if (!usedSet.has(preset.value)) {
-      colors[projectId] = preset.value;
-      saveLaneColors(colors);
+      store.setLaneColor(projectId, preset.value);
       return preset.value;
     }
   }
   
   // All colors used, just use the first one
-  colors[projectId] = LANE_COLOR_PRESETS[0].value;
-  saveLaneColors(colors);
-  return colors[projectId];
+  store.setLaneColor(projectId, LANE_COLOR_PRESETS[0].value);
+  return LANE_COLOR_PRESETS[0].value;
 }
