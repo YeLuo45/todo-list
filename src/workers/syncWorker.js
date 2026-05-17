@@ -81,15 +81,44 @@ function broadcastToAll(message) {
 function broadcastSyncHeartbeat() {
   const now = Date.now();
   PORT_MAP.forEach((client, port) => {
-    port.postMessage({ 
-      type: 'heartbeat', 
-      payload: { 
-        time: now, 
+    port.postMessage({
+      type: 'heartbeat',
+      payload: {
+        time: now,
         lastSyncTime,
-        pendingCount: pendingChanges.size 
-      } 
+        pendingCount: pendingChanges.size
+      }
     });
   });
+}
+
+/**
+ * 自动合并策略：远程优先，但保留本地独有的非空字段
+ */
+function autoMerge(localTask, remoteTask) {
+  const merged = { ...remoteTask };
+  const localTime = new Date(localTask.updatedAt || 0).getTime();
+  const remoteTime = new Date(remoteTask.updatedAt || 0).getTime();
+
+  // 如果 local 更新，则以 local 为基础合并
+  if (localTime > remoteTime) {
+    Object.keys(localTask).forEach(key => {
+      // 如果 remote 没有这个字段或为空，但 local 有值，保留 local
+      if (localTask[key] != null && localTask[key] !== '' && remoteTask[key] == null) {
+        merged[key] = localTask[key];
+      }
+    });
+    merged.updatedAt = localTask.updatedAt;
+  }
+
+  // 合并 subtasks（去重）
+  if (localTask.subtasks?.length && remoteTask.subtasks?.length) {
+    const remoteSubtaskIds = new Set(remoteTask.subtasks.map(st => st.id));
+    const uniqueLocalSubtasks = localTask.subtasks.filter(st => !remoteSubtaskIds.has(st.id));
+    merged.subtasks = [...remoteTask.subtasks, ...uniqueLocalSubtasks];
+  }
+
+  return merged;
 }
 
 async function handleSyncRequest(port, payload) {
@@ -143,15 +172,50 @@ async function handleSyncRequest(port, payload) {
 
       const content = JSON.parse(fileContent.content);
       lastSyncTime = Date.now();
-      
-      port.postMessage({ 
-        type: 'sync-result', 
-        payload: { 
-          action: 'pull', 
-          success: true, 
-          data: content,
-          lastSyncTime 
-        } 
+
+      // 冲突检测：如果 payload.localTasks 存在，进行冲突检测和自动合并
+      const localTasks = payload?.localTasks;
+      let mergedData = content;
+
+      if (localTasks && Array.isArray(content.tasks) && Array.isArray(localTasks)) {
+        // 构建 localTasks map
+        const localMap = new Map(localTasks.map(t => [t.id, t]));
+        const conflicts = [];
+
+        // 检测冲突：remote 有更新的任务
+        content.tasks.forEach(remoteTask => {
+          const localTask = localMap.get(remoteTask.id);
+          if (localTask) {
+            const remoteTime = new Date(remoteTask.updatedAt || 0).getTime();
+            const localTime = new Date(localTask.updatedAt || 0).getTime();
+            if (remoteTime > localTime) {
+              conflicts.push({ local: localTask, remote: remoteTask });
+            }
+          }
+        });
+
+        if (conflicts.length > 0) {
+          console.log(`[syncWorker] Detected ${conflicts.length} conflicts, auto-merging...`);
+          // 冲突自动合并：远程优先，但保留本地独有的非空字段
+          const mergedTasks = [...content.tasks];
+          conflicts.forEach(({ local, remote }) => {
+            const merged = autoMerge(local, remote);
+            const idx = mergedTasks.findIndex(t => t.id === merged.id);
+            if (idx >= 0) mergedTasks[idx] = merged;
+          });
+          mergedData = { ...content, tasks: mergedTasks, autoMerged: true };
+        }
+      }
+
+      port.postMessage({
+        type: 'sync-result',
+        payload: {
+          action: 'pull',
+          success: true,
+          data: mergedData,
+          lastSyncTime,
+          hadConflicts: conflicts?.length > 0
+        }
       });
       
     } else if (action === 'push') {
