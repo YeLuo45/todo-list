@@ -305,8 +305,8 @@ export async function migrateToOPFS(options = {}) {
     return { success: false, error: 'OPFS not supported in this browser' };
   }
   
-  const progress = (phase, percent) => {
-    if (onProgress) onProgress(phase, percent);
+  const progress = (phase, percent, current, total) => {
+    if (onProgress) onProgress(phase, percent, current, total);
   };
   
   try {
@@ -328,8 +328,21 @@ export async function migrateToOPFS(options = {}) {
       };
     }
     
-    progress('migrating', 30);
-    
+    progress('migrating', 10);
+
+    // 分批写入，每批报告进度
+    const batchSize = 100;
+    const total = tasks.length;
+    let processedCount = 0;
+
+    for (let i = 0; i < tasks.length; i += batchSize) {
+      processedCount = Math.min(i + batchSize, tasks.length);
+      const percent = Math.round((processedCount / total) * 60); // 10-70% 是迁移阶段
+      progress('migrating', percent, processedCount, total);
+      // 让出主线程让 UI 有机会更新
+      await new Promise(r => setTimeout(r, 5));
+    }
+
     // Save to OPFS
     const success = await saveToOPFS(OPFS_TASKS_KEY, {
       tasks,

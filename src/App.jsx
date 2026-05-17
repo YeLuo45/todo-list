@@ -24,6 +24,7 @@ import ConflictModal from './components/ConflictModal';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
 import { getGistConfig, createBackupGist } from './utils/gistSync';
 import { useAppStore } from './store/useAppStore';
+import { migrateToOPFS, getStorageMode } from './utils/storage';
 import './App.css';
 
 function AppContent() {
@@ -50,6 +51,9 @@ function AppContent() {
   // 冲突解决状态
   const [showConflict, setShowConflict] = useState(false);
   const [conflictData, setConflictData] = useState({ local: null, remote: null });
+
+  // OPFS 迁移进度状态
+  const [opfsMigration, setOpfsMigration] = useState(null); // null | { current, total }
 
   const { theme, toggleTheme } = useTheme();
 
@@ -106,6 +110,26 @@ function AppContent() {
       window.removeEventListener('task-deleted', handleDeleted);
     };
   }, [notifyTaskChange, allTasks]);
+
+  // OPFS 迁移（任务数 > 500 时触发）
+  useEffect(() => {
+    if (allTasks.length > 500 && getStorageMode() !== 'opfs') {
+      migrateToOPFS({
+        onProgress: (phase, percent, current, total) => {
+          if (phase === 'migrating') {
+            setOpfsMigration({ current, total });
+          }
+        }
+      }).then((result) => {
+        setOpfsMigration(null);
+        if (result.success) {
+          addToast(`OPFS 迁移完成 (${result.migrated || allTasks.length} 任务) ✓`);
+        }
+      }).catch(() => {
+        setOpfsMigration(null);
+      });
+    }
+  }, [allTasks.length]);
 
   const autoBackup = useAppStore((s) => s.autoBackup);
   const backupInterval = useAppStore((s) => s.backupInterval);
@@ -446,6 +470,12 @@ function AppContent() {
             addToast('已合并两个版本');
           }}
         />
+      )}
+
+      {opfsMigration && (
+        <div className="opfs-migration-toast">
+          📦 OPFS 迁移中... {opfsMigration.current}/{opfsMigration.total}
+        </div>
       )}
 
       {toasts.map((toast) => (
