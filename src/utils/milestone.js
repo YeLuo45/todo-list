@@ -5,7 +5,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 
-const MILESTONE_COLORS = [
+export const MILESTONE_COLORS = [
   '#3b82f6', // blue
   '#8b5cf6', // purple
   '#ec4899', // pink
