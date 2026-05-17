@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { loadTasks, saveTasks } from '../utils/storageOptimizer';
+import { getTasks, setTasks, initStorage, getTasksFromOPFS, getStorageMode } from '../utils/storage';
 
 const TaskContext = createContext(null);
 
@@ -136,17 +136,26 @@ export function TaskProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    loadTasks().then((loadedTasks) => {
-      // Ensure recurring tasks exist for today
-      const updated = ensureRecurringTasks(loadedTasks);
-      setTasks(updated || loadedTasks);
-      setIsLoading(false);
+    initStorage().then(() => {
+      const mode = getStorageMode();
+      if (mode === 'opfs') {
+        getTasksFromOPFS().then((loadedTasks) => {
+          const updated = ensureRecurringTasks(loadedTasks);
+          setTasksState(updated || loadedTasks || []);
+          setIsLoading(false);
+        });
+      } else {
+        const loadedTasks = getTasks();
+        const updated = ensureRecurringTasks(loadedTasks);
+        setTasksState(updated || loadedTasks || []);
+        setIsLoading(false);
+      }
     });
   }, [ensureRecurringTasks]);
 
   useEffect(() => {
     if (!isLoading) {
-      saveTasks(tasks);
+      setTasks(tasks);
     }
   }, [tasks, isLoading]);
 
