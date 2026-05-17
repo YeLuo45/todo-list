@@ -209,6 +209,7 @@ export function TaskProvider({ children }) {
       projectId: taskData.projectId || null,
     };
     setTasks((prev) => [newTask, ...prev]);
+    window.dispatchEvent(new CustomEvent('task-created', { detail: newTask }));
     return newTask;
   }, []);
 
@@ -259,10 +260,12 @@ export function TaskProvider({ children }) {
       }
       return prev.map((t) => t.id === id ? { ...t, ...next } : t);
     });
+    window.dispatchEvent(new CustomEvent('task-updated', { detail: { id, updates: next } }));
   }, []);
 
   const deleteTask = useCallback((id) => {
     setTasks((prev) => prev.filter((task) => task.id !== id));
+    window.dispatchEvent(new CustomEvent('task-deleted', { detail: { id } }));
   }, []);
 
   // Batch operations

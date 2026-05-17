@@ -66,13 +66,18 @@ function AppContent() {
   const { connected, lastHeartbeat: swHeartbeat, pendingCount: swPending, notifyTaskChange } = useSyncWorker((changedTask) => {
     // 跨标签页任务变更：更新 tasks
     setTasks(prev => {
+      // 删除操作
+      if (changedTask._deleted) {
+        return prev.filter(t => t.id !== changedTask.id);
+      }
       const idx = prev.findIndex(t => t.id === changedTask.id);
       if (idx >= 0) {
         const updated = [...prev];
         updated[idx] = changedTask;
         return updated;
       }
-      return prev;
+      // 新建任务（ID 不存在则添加）
+      return [changedTask, ...prev];
     });
   });
 
@@ -80,6 +85,27 @@ function AppContent() {
   useEffect(() => { setSyncConnected(connected); }, [connected]);
   useEffect(() => { setLastHeartbeat(swHeartbeat); }, [swHeartbeat]);
   useEffect(() => { setPendingCount(swPending); }, [swPending]);
+
+  // 监听 TaskContext 事件并广播到其他标签页
+  useEffect(() => {
+    const handleCreated = (e) => notifyTaskChange(e.detail);
+    const handleUpdated = (e) => {
+      const { id, updates } = e.detail;
+      const task = allTasks.find(t => t.id === id);
+      if (task) notifyTaskChange({ ...task, ...updates });
+    };
+    const handleDeleted = (e) => notifyTaskChange({ id: e.detail.id, _deleted: true });
+
+    window.addEventListener('task-created', handleCreated);
+    window.addEventListener('task-updated', handleUpdated);
+    window.addEventListener('task-deleted', handleDeleted);
+
+    return () => {
+      window.removeEventListener('task-created', handleCreated);
+      window.removeEventListener('task-updated', handleUpdated);
+      window.removeEventListener('task-deleted', handleDeleted);
+    };
+  }, [notifyTaskChange, allTasks]);
 
   const autoBackup = useAppStore((s) => s.autoBackup);
   const backupInterval = useAppStore((s) => s.backupInterval);
