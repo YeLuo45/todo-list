@@ -3,6 +3,8 @@ import './SettingsModal.css';
 import { getGoogleCalendarApiKey, setGoogleCalendarApiKey } from '../utils/googleCalendarSync';
 import { getSlackWebhookUrl, setSlackWebhookUrl } from '../utils/slackNotifier';
 import { getUsers, addUser, updateUser, deleteUser, getCurrentUser, setCurrentUser } from '../utils/comment';
+import { isEncryptionEnabled, setEncryptionEnabled } from '../utils/storage';
+import { keyManager } from '../crypto/keyManager';
 
 const AI_TOKEN_KEY = 'hermes_ai_token';
 
@@ -23,6 +25,50 @@ export default function SettingsModal({ token, repo, onSave, onClose }) {
   const [newUserName, setNewUserName] = useState('');
   const [newUserAvatar, setNewUserAvatar] = useState('👤');
   const [newUserColor, setNewUserColor] = useState('#6b7280');
+  const [encryptionEnabled, setEncryptionEnabledState] = useState(isEncryptionEnabled());
+
+  const handleEncryptionToggle = (enabled) => {
+    setEncryptionEnabled(enabled);
+    setEncryptionEnabledState(enabled);
+  };
+
+  const handleExportKey = async () => {
+    try {
+      const key = await keyManager.getOrCreateKey();
+      const base64Key = await keyManager.exportKey(key);
+      const blob = new Blob([base64Key], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'hermes-encryption-key.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export key:', err);
+      alert('导出密钥失败');
+    }
+  };
+
+  const handleImportKey = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.txt,.key';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const trimmed = text.trim();
+        await keyManager.importKey(trimmed);
+        localStorage.setItem('hermes_enc_key_v1', trimmed);
+        alert('密钥导入成功');
+      } catch (err) {
+        console.error('Failed to import key:', err);
+        alert('导入密钥失败：请确保是有效的 Base64 密钥文件');
+      }
+    };
+    input.click();
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -283,6 +329,39 @@ export default function SettingsModal({ token, repo, onSave, onClose }) {
                 ➕ 添加成员
               </button>
             )}
+          </div>
+
+          <div className="form-section">
+            <h4>🔒 端到端加密设置</h4>
+            <div className="encryption-status">
+              <span className={`status-badge ${encryptionEnabled ? 'active' : 'inactive'}`}>
+                {encryptionEnabled ? '🔐 已启用' : '🔓 已禁用'}
+              </span>
+              {keyManager.hasKey() && (
+                <span className="key-indicator">密钥已存在</span>
+              )}
+            </div>
+            <div className="form-group">
+              <label className="toggle-label">
+                <span>启用加密模式</span>
+                <input
+                  type="checkbox"
+                  checked={encryptionEnabled}
+                  onChange={(e) => handleEncryptionToggle(e.target.checked)}
+                  className="toggle-input"
+                />
+                <span className="toggle-switch"></span>
+              </label>
+              <small>开启后，所有任务数据将使用 AES-256-GCM 加密存储。请妥善保管密钥！</small>
+            </div>
+            <div className="encryption-actions">
+              <button type="button" className="btn-secondary" onClick={handleExportKey}>
+                📤 导出密钥
+              </button>
+              <button type="button" className="btn-secondary" onClick={handleImportKey}>
+                📥 导入密钥
+              </button>
+            </div>
           </div>
 
           <div className="form-actions">

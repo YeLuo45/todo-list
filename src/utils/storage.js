@@ -10,11 +10,15 @@
 
 import { saveToOPFS, loadFromOPFS, deleteFromOPFS, isOPFSSupported as checkOPFSSupport } from './opfsStorage';
 import { loadTasks as loadShardedTasks, saveTasks as saveShardedTasks } from './storageOptimizer';
+import { encrypt, decrypt } from '../crypto/cryptoUtils.js';
+import { keyManager } from '../crypto/keyManager.js';
 
 // Storage keys
 const TASKS_KEY = 'hermes_todos_v2';
 const OPFS_TASKS_KEY = 'tasks'; // OPFS file name (without .json)
 const LARGE_DATA_THRESHOLD = 500; // Switch to OPFS when tasks > 500
+const ENCRYPTED_TASKS_KEY = 'hermes_tasks_encrypted_v1';
+const USE_ENCRYPTION_KEY = 'hermes_use_encryption_v1';
 
 // Storage mode tracking
 let storageMode = 'localStorage'; // 'localStorage' | 'opfs'
@@ -527,6 +531,74 @@ export async function asyncGetItem(key) {
   }
 }
 
+/**
+ * Check if encryption is enabled
+ * @returns {boolean} True if encryption is enabled
+ */
+export function isEncryptionEnabled() {
+  return localStorage.getItem(USE_ENCRYPTION_KEY) === 'true';
+}
+
+/**
+ * Set encryption enabled/disabled
+ * @param {boolean} enabled - Whether to enable encryption
+ */
+export function setEncryptionEnabled(enabled) {
+  localStorage.setItem(USE_ENCRYPTION_KEY, enabled ? 'true' : 'false');
+}
+
+/**
+ * Save tasks with encryption (if enabled)
+ * @param {Array} tasks - Array of tasks
+ * @returns {Promise<boolean>} Success
+ */
+export async function saveTasksEncrypted(tasks) {
+  if (!isEncryptionEnabled()) {
+    return setTasks(tasks); // fallback to plain
+  }
+  try {
+    const key = await keyManager.getOrCreateKey();
+    const encrypted = await encrypt(tasks, key);
+    localStorage.setItem(ENCRYPTED_TASKS_KEY, encrypted);
+    // Clear plain storage when encrypted
+    localStorage.removeItem(TASKS_KEY);
+    // Also clear shards
+    const indexStr = localStorage.getItem('hermes_tasks_index');
+    if (indexStr) {
+      try {
+        const parsed = JSON.parse(indexStr);
+        for (let i = 0; i < parsed.shardCount; i++) {
+          localStorage.removeItem(`hermes_tasks_shard_${i}`);
+        }
+      } catch (e) { /* ignore */ }
+    }
+    localStorage.removeItem('hermes_tasks_index');
+    return true;
+  } catch (err) {
+    console.error('[storage] Encryption failed:', err);
+    throw err;
+  }
+}
+
+/**
+ * Load tasks with decryption (if enabled)
+ * @returns {Promise<Array>} Array of tasks
+ */
+export async function loadTasksEncrypted() {
+  if (!isEncryptionEnabled()) {
+    return getTasks();
+  }
+  try {
+    const encrypted = localStorage.getItem(ENCRYPTED_TASKS_KEY);
+    if (!encrypted) return [];
+    const key = await keyManager.getOrCreateKey();
+    return await decrypt(encrypted, key);
+  } catch (err) {
+    console.error('[storage] Decryption failed:', err);
+    return [];
+  }
+}
+
 // Default export with all functions
 export default {
   getItem,
@@ -546,5 +618,9 @@ export default {
   initStorage,
   syncGetItem,
   asyncGetItem,
-  LARGE_DATA_THRESHOLD
+  LARGE_DATA_THRESHOLD,
+  isEncryptionEnabled,
+  setEncryptionEnabled,
+  saveTasksEncrypted,
+  loadTasksEncrypted
 };
