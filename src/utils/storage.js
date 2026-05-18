@@ -183,6 +183,7 @@ export function getTasks() {
 
 /**
  * Set tasks - automatically chooses OPFS vs localStorage based on count
+ * Falls back to localStorage if OPFS write fails
  * @param {Array} tasks - Array of tasks
  * @returns {boolean} Success
  */
@@ -193,14 +194,28 @@ export function setTasks(tasks) {
   if (taskCount > LARGE_DATA_THRESHOLD) {
     if (isOPFSSupported()) {
       storageMode = 'opfs';
-      return setTasksOPFS(tasks);
+      const opfsResult = setTasksOPFS(tasks);
+      if (opfsResult) return true;
+      // OPFS write failed, fall back to localStorage
+      console.warn('[storage] OPFS write failed, falling back to localStorage');
+      storageMode = 'localStorage';
     } else {
       console.warn(`[storage] Task count (${taskCount}) exceeds threshold (${LARGE_DATA_THRESHOLD}) but OPFS not available, using sharded localStorage`);
+      storageMode = 'localStorage';
     }
+  } else if (storageMode === 'opfs') {
+    // Already in OPFS mode but task count dropped below threshold
+    // Try OPFS first (keep in OPFS if it works)
+    const opfsResult = setTasksOPFS(tasks);
+    if (opfsResult) return true;
+    // Fall back to localStorage
+    console.warn('[storage] OPFS write failed, falling back to localStorage');
+    storageMode = 'localStorage';
+  } else {
+    // Use sharded localStorage
+    storageMode = 'localStorage';
   }
   
-  // Use sharded localStorage
-  storageMode = 'localStorage';
   return saveShardedTasks(tasks);
 }
 
@@ -226,11 +241,15 @@ async function setTasksOPFS(tasks) {
         savedAt: new Date().toISOString()
       }));
       console.log(`[storage] Saved ${tasks.length} tasks to OPFS`);
+      return true;
+    } else {
+      // OPFS write returned false - likely quota or permission issue
+      console.warn('[storage] OPFS write returned false, falling back to localStorage');
+      return false;
     }
-    
-    return success;
   } catch (e) {
     console.error('[storage] Failed to save tasks to OPFS:', e);
+    // Fall through to localStorage fallback
     return false;
   }
 }
@@ -490,7 +509,11 @@ export async function asyncGetItem(key) {
   if (key === TASKS_KEY) {
     if (storageMode === 'opfs') {
       const tasks = await getTasksFromOPFS();
-      return tasks;
+      if (tasks && tasks.length > 0) return tasks;
+      // OPFS read failed or empty, fall back to localStorage
+      console.warn('[storage] OPFS read failed/empty, falling back to localStorage');
+      storageMode = 'localStorage';
+      return getTasks();
     }
     return getTasks();
   }

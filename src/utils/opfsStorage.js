@@ -26,13 +26,23 @@ export async function saveToOPFS(key, data) {
     console.log(`[OPFS] Saved ${key} (${JSON.stringify(data).length} bytes)`);
     return true;
   } catch (e) {
-    console.error('[OPFS] Save error:', e);
+    // Detect quota exceeded or other storage errors
+    if (e instanceof DOMException) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_FILE_QUOTA_EXCEEDED') {
+        console.warn('[OPFS] Quota exceeded, fallback to localStorage needed');
+      } else {
+        console.error('[OPFS] DOMException:', e.name, e.message);
+      }
+    } else {
+      console.error('[OPFS] Save error:', e);
+    }
     return false;
   }
 }
 
 /**
  * 从 OPFS 加载数据
+ * 读取失败时返回 null（调用方应降级到 localStorage）
  */
 export async function loadFromOPFS(key) {
   try {
@@ -42,7 +52,16 @@ export async function loadFromOPFS(key) {
     const text = await file.text();
     return JSON.parse(text);
   } catch (e) {
-    console.error('[OPFS] Load error:', e);
+    // 文件不存在或读取失败
+    if (e instanceof DOMException) {
+      if (e.name === 'NotFoundError') {
+        console.warn(`[OPFS] File ${key} not found`);
+      } else {
+        console.error('[OPFS] Load DOMException:', e.name, e.message);
+      }
+    } else {
+      console.error('[OPFS] Load error:', e);
+    }
     return null;
   }
 }
