@@ -21,6 +21,7 @@ import { useSyncWorker } from './hooks/useSyncWorker';
 import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import ConflictModal from './components/ConflictModal';
+import InsightsPanel from './components/InsightsPanel';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
 import { getGistConfig, createBackupGist } from './utils/gistSync';
 import { useAppStore } from './store/useAppStore';
@@ -51,6 +52,9 @@ function AppContent() {
   // 冲突解决状态
   const [showConflict, setShowConflict] = useState(false);
   const [conflictData, setConflictData] = useState({ local: null, remote: null });
+
+  // 洞察面板折叠状态
+  const [insightsCollapsed, setInsightsCollapsed] = useState(true);
 
   // OPFS 迁移进度状态
   const [opfsMigration, setOpfsMigration] = useState(null); // null | { current, total }
@@ -477,6 +481,12 @@ function AppContent() {
           📦 OPFS 迁移中... {opfsMigration.current}/{opfsMigration.total}
         </div>
       )}
+
+      <InsightsPanel
+        tasks={allTasks}
+        collapsed={insightsCollapsed}
+        onToggle={() => setInsightsCollapsed(c => !c)}
+      />
 
       {toasts.map((toast) => (
         <ReminderToast
