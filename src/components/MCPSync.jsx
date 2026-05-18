@@ -1,9 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import githubMCP from '../mcp/githubMcp.js';
 import jiraMCP from '../mcp/jiraMcp.js';
 import figmaMCP from '../mcp/figmaMcp.js';
 import { mapToTask } from '../mcp/taskMapper.js';
+import { mcpOrchestrator } from '../mcp/orchestrator.js';
+import { initWorkflows } from '../mcp/workflows.js';
 import './MCPSync.css';
+
+// Initialize workflows on module load
+initWorkflows();
 
 const STATUS_CONFIG = {
   disconnected: { icon: '⚪', label: '未连接', color: '#94a3b8' },
@@ -12,8 +17,15 @@ const STATUS_CONFIG = {
   error: { icon: '❌', label: '连接失败', color: '#ef4444' }
 };
 
-const TABS = ['github', 'jira', 'figma'];
-const TAB_LABELS = { github: 'GitHub', jira: 'Jira', figma: 'Figma' };
+const TABS = ['github', 'jira', 'figma', 'orchestration'];
+const TAB_LABELS = { github: 'GitHub', jira: 'Jira', figma: 'Figma', orchestration: '编排日志' };
+
+// Available tool chains for orchestration
+const TOOL_CHAINS = [
+  { id: 'github-issue-to-task', label: 'GitHub Issue → Task' },
+  { id: 'jira-issue-to-task', label: 'Jira Issue → Task' },
+  { id: 'github-issue-to-jira', label: 'GitHub Issue → Jira' }
+];
 
 function MCPSync({ onImportTask }) {
   const [activeTab, setActiveTab] = useState('github');
@@ -46,6 +58,49 @@ function MCPSync({ onImportTask }) {
   const [autoImportEnabled, setAutoImportEnabled] = useState(false);
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [importProgress, setImportProgress] = useState(0);
+
+  // Orchestration state
+  const [orchestrationLog, setOrchestrationLog] = useState([]);
+  const [selectedChain, setSelectedChain] = useState('');
+  const [orchestrationInput, setOrchestrationInput] = useState('');
+  const [orchestrationLoading, setOrchestrationLoading] = useState(false);
+
+  // Refresh orchestration log
+  const refreshOrchestrationLog = useCallback(() => {
+    setOrchestrationLog([...mcpOrchestrator.getExecutionLog()]);
+  }, []);
+
+  // Execute selected chain
+  const handleExecuteChain = useCallback(async () => {
+    if (!selectedChain) {
+      setError('请选择一个工具链');
+      return;
+    }
+    setOrchestrationLoading(true);
+    setError(null);
+    try {
+      let input;
+      try {
+        input = orchestrationInput ? JSON.parse(orchestrationInput) : {};
+      } catch {
+        input = { input: orchestrationInput };
+      }
+      await mcpOrchestrator.executeChain([selectedChain], input);
+      refreshOrchestrationLog();
+    } catch (err) {
+      setError(`编排执行失败: ${err.message}`);
+    } finally {
+      setOrchestrationLoading(false);
+    }
+  }, [selectedChain, orchestrationInput, refreshOrchestrationLog]);
+
+  // Subscribe to orchestration events
+  useEffect(() => {
+    const unsubscribe = mcpOrchestrator.subscribe('task:create', (data) => {
+      refreshOrchestrationLog();
+    });
+    return unsubscribe;
+  }, [refreshOrchestrationLog]);
 
   // Unified import function
   const _importAsTask = useCallback((item, source) => {
@@ -805,6 +860,91 @@ function MCPSync({ onImportTask }) {
               请输入文件 Key 并点击"获取文件"或"获取评论"
             </div>
           )}
+        </div>
+      )}
+
+      {/* Orchestration Log Tab */}
+      {activeTab === 'orchestration' && (
+        <div className="mcp-tab-content">
+          <div className="orchestration-section">
+            <h4>触发编排</h4>
+            <div className="orchestration-controls">
+              <div className="form-group">
+                <label htmlFor="chain-select">工具链</label>
+                <select
+                  id="chain-select"
+                  value={selectedChain}
+                  onChange={(e) => setSelectedChain(e.target.value)}
+                >
+                  <option value="">-- 选择工具链 --</option>
+                  {TOOL_CHAINS.map(chain => (
+                    <option key={chain.id} value={chain.id}>{chain.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="chain-input">输入 (JSON)</label>
+                <textarea
+                  id="chain-input"
+                  placeholder='{"repo": "owner/repo", "issue": {"number": 1}}'
+                  value={orchestrationInput}
+                  onChange={(e) => setOrchestrationInput(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              <div className="form-actions">
+                <button
+                  className="btn-connect"
+                  onClick={handleExecuteChain}
+                  disabled={orchestrationLoading || !selectedChain}
+                >
+                  {orchestrationLoading ? '执行中...' : '手动触发'}
+                </button>
+                <button
+                  className="btn-refresh"
+                  onClick={refreshOrchestrationLog}
+                >
+                  刷新日志
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="orchestration-log">
+            <h4>编排日志</h4>
+            {orchestrationLog.length === 0 ? (
+              <div className="mcp-empty">暂无编排记录</div>
+            ) : (
+              <table className="log-table">
+                <thead>
+                  <tr>
+                    <th>时间戳</th>
+                    <th>工具链</th>
+                    <th>状态</th>
+                    <th>输入</th>
+                    <th>输出</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orchestrationLog.map((entry) => (
+                    <tr key={entry.id}>
+                      <td>{new Date(entry.timestamp).toLocaleString()}</td>
+                      <td>{entry.chain.join(' → ')}</td>
+                      <td>
+                        <span className={`status-badge ${entry.status}`}>{entry.status}</span>
+                      </td>
+                      <td>
+                        <pre className="log-json">{JSON.stringify(entry.input, null, 2)}</pre>
+                      </td>
+                      <td>
+                        <pre className="log-json">{JSON.stringify(entry.output, null, 2)}</pre>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -484,3 +484,135 @@
   background: #374151;
   color: #f9fafb;
 }
+
+/* Orchestration Tab Styles */
+.orchestration-section {
+  margin-bottom: 20px;
+}
+
+.orchestration-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-primary, #1f2937);
+}
+
+.orchestration-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.orchestration-controls select {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--input-bg, #fff);
+  color: var(--text-primary, #1f2937);
+  cursor: pointer;
+}
+
+.orchestration-controls select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.orchestration-controls textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: monospace;
+  background: var(--input-bg, #fff);
+  color: var(--text-primary, #1f2937);
+  resize: vertical;
+}
+
+.orchestration-controls textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.orchestration-log {
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  padding-top: 16px;
+}
+
+.orchestration-log h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-primary, #1f2937);
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed;
+}
+
+.log-table th,
+.log-table td {
+  padding: 10px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  vertical-align: top;
+}
+
+.log-table th {
+  font-weight: 600;
+  color: var(--text-secondary, #6b7280);
+  background: var(--bg-secondary, #f9fafb);
+  position: sticky;
+  top: 0;
+}
+
+.log-table td:first-child {
+  white-space: nowrap;
+  color: var(--text-secondary, #6b7280);
+}
+
+.log-table td:nth-child(2) {
+  font-family: monospace;
+  color: #3b82f6;
+}
+
+.log-json {
+  margin: 0;
+  padding: 4px;
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 4px;
+  font-size: 11px;
+  overflow-x: auto;
+  max-height: 100px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.status-badge.completed {
+  background: #22c55e;
+}
+
+.status-badge.running {
+  background: #f59e0b;
+}
+
+[data-theme="dark"] .orchestration-controls select,
+[data-theme="dark"] .orchestration-controls textarea {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+[data-theme="dark"] .log-table th {
+  background: #374151;
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .log-table td {
+  border-color: #4b5563;
+}
+
+[data-theme="dark"] .log-json {
+  background: #374151;
+}
