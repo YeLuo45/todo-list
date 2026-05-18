@@ -33,12 +33,18 @@ export function useSyncWorker(onTaskChange) {
           switch (type) {
             case 'connected':
               setConnected(true);
+              if (payload.pendingCount !== undefined) {
+                setPendingCount(payload.pendingCount);
+              }
               break;
             case 'task-changed':
               taskChangeRef.current?.(payload);
               break;
             case 'heartbeat':
               setLastHeartbeat(payload.time);
+              setPendingCount(payload.pendingCount);
+              break;
+            case 'pending-updated':
               setPendingCount(payload.pendingCount);
               break;
             case 'sync-complete':
