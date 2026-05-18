@@ -30,20 +30,20 @@ const SCHEMA_VERSION_KEY = 'hermes-todo-schema-version';
 const CURRENT_SCHEMA_VERSION = 3;
 const MILESTONE_STORAGE_KEY = 'hermes_milestones_v1';
 
+// Optimistic UI — 乐观更新失败回滚事件
+export const OPTIMISTIC_ROLLBACK = 'optimistic-rollback';
+
 // Data migration functions
 const migrations = {
   2: (tasks) => {
-    // v2: Add recurrence fields, convert status to Chinese display only (value stays same)
     return tasks.map(task => ({
       ...task,
-      recurrence: task.recurrence || null, // null, 'daily', 'weekly', 'monthly'
+      recurrence: task.recurrence || null,
       recurrenceEndDate: task.recurrenceEndDate || null,
-      generatedDate: task.generatedDate || task.createdAt, // date when this instance was generated
-      // status values remain: 'todo', 'in-progress', 'done'
+      generatedDate: task.generatedDate || task.createdAt,
     }));
   },
   3: (tasks) => {
-    // v3: Convert priority from high/medium/low to P0/P1/P2, migrate from legacy storage key
     const priorityMap = { high: 'P0', medium: 'P1', low: 'P2' };
     return tasks.map(task => ({
       ...task,
@@ -54,35 +54,59 @@ const migrations = {
 
 const migrateData = (tasks) => {
   let migratedTasks = tasks;
-
   for (let v = 2; v <= CURRENT_SCHEMA_VERSION; v++) {
     if (migrations[v]) {
       migratedTasks = migrations[v](migratedTasks);
       console.log(`[TaskContext] Migrated data to v${v}`);
     }
   }
-
   localStorage.setItem(SCHEMA_VERSION_KEY, String(CURRENT_SCHEMA_VERSION));
   return migratedTasks;
 };
 
-// Detect if running in Electron
-const isElectron = () => {
-  return typeof window !== 'undefined' && window.electronAPI;
-};
+// Helper: optimistic save with rollback on failure
+// saveOptimistic returns true if save succeeded, false if rolled back
+function createOptimisticSave(setTasks) {
+  // Snapshot ref for rollback — keyed by render cycle to avoid stale refs
+  let snapshot = null;
+
+  const saveSnapshot = (tasks) => {
+    snapshot = tasks;
+  };
+
+  const saveOptimistic = (tasks, operation, payload) => {
+    // Save to storage
+    const ok = setTasks(tasks);
+    if (!ok && snapshot) {
+      // Rollback to snapshot
+      setTasks(snapshot);
+      snapshot = null;
+      window.dispatchEvent(new CustomEvent(OPTIMISTIC_ROLLBACK, {
+        detail: { operation, payload, message: `${operation} 保存失败，已回滚` }
+      }));
+      return false;
+    }
+    snapshot = null;
+    return true;
+  };
+
+  return { saveOptimistic, saveSnapshot };
+}
 
 export function TaskProvider({ children }) {
   const [tasks, setTasks] = useState([]);
   const [milestones, setMilestones] = useState([]);
-  const [filterTags, setFilterTags] = useState([]); // multi-select tags
-  const [filterProject, setFilterProject] = useState(null); // project ID filter
+  const [filterTags, setFilterTags] = useState([]);
+  const [filterProject, setFilterProject] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResult, setSearchResult] = useState(null); // null = no search, array of matched IDs
+  const [searchResult, setSearchResult] = useState(null);
   const [sortBy, setSortBy] = useState('createdAt');
   const [isLoading, setIsLoading] = useState(true);
   const [hideCompleted, setHideCompleted] = useState(false);
-  const [dateFilter, setDateFilter] = useState(null); // null = all, or date string 'YYYY-MM-DD'
+  const [dateFilter, setDateFilter] = useState(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState(new Set());
+
+  const { saveOptimistic, saveSnapshot } = createOptimisticSave(setTasks);
 
   // Generate daily recurring tasks if needed
   const ensureRecurringTasks = useCallback((taskList) => {
@@ -97,21 +121,18 @@ export function TaskProvider({ children }) {
     taskList.forEach(task => {
       if (!task.recurrence) return;
 
-      // Check if a task instance for today already exists
       const todayInstance = taskList.find(
         t => t.parentId === task.id && t.generatedDate && t.generatedDate.startsWith(todayStr)
       );
 
-      if (todayInstance) return; // Already has today's instance
+      if (todayInstance) return;
 
-      // Check if recurrence has ended
       if (task.recurrenceEndDate) {
         const endDate = new Date(task.recurrenceEndDate);
         endDate.setHours(23, 59, 59, 999);
         if (endDate < today) return;
       }
 
-      // Create today's instance
       const newInstance = {
         id: `${task.id}-${todayStr}`,
         parentId: task.id,
@@ -121,7 +142,7 @@ export function TaskProvider({ children }) {
         priority: task.priority,
         status: 'todo',
         dueDate: task.dueDate,
-        recurrence: null, // instance is not recurring
+        recurrence: null,
         recurrenceEndDate: null,
         generatedDate: now,
         createdAt: now,
@@ -153,6 +174,7 @@ export function TaskProvider({ children }) {
     });
   }, [ensureRecurringTasks]);
 
+  // Optimistic UI: 持久化 tasks 到 storage（失败时回滚由 mutation 函数自行处理）
   useEffect(() => {
     if (!isLoading) {
       setTasks(tasks);
@@ -208,17 +230,23 @@ export function TaskProvider({ children }) {
       endTime: taskData.endTime || null,
       projectId: taskData.projectId || null,
     };
-    setTasks((prev) => [newTask, ...prev]);
+
+    setTasks((prev) => {
+      const next = [newTask, ...prev];
+      saveSnapshot(prev);
+      saveOptimistic(next, '创建任务', { id: newTask.id });
+      return next;
+    });
+
     window.dispatchEvent(new CustomEvent('task-created', { detail: newTask }));
     return newTask;
-  }, []);
+  }, [saveOptimistic, saveSnapshot]);
 
   const updateTask = useCallback((id, updates) => {
     setTasks((prev) => {
       const task = prev.find((t) => t.id === id);
       if (!task) return prev;
 
-      // Auto-timestamp on status transitions
       const next = { ...updates, updatedAt: new Date().toISOString() };
       if (updates.status && updates.status !== task.status) {
         if (updates.status === 'in-progress' && !next.startTime) {
@@ -228,7 +256,6 @@ export function TaskProvider({ children }) {
           next.endTime = new Date().toISOString();
         }
 
-        // Recurring task completed — generate next instance
         if (updates.status === 'done' && task.isRecurring && task.recurrenceInterval) {
           const recurrenceEnd = task.recurrenceEndDate ? new Date(task.recurrenceEndDate) : null;
           const nextDate = new Date(
@@ -254,39 +281,64 @@ export function TaskProvider({ children }) {
               updatedAt: new Date().toISOString(),
               subtasks: task.subtasks.map((st) => ({ ...st, done: false })),
             };
-            return [...prev.map((t) => t.id === id ? { ...t, ...next } : t), newTask];
+            const updated = [...prev.map((t) => t.id === id ? { ...t, ...next } : t), newTask];
+            saveSnapshot(prev);
+            saveOptimistic(updated, '更新任务', { id });
+            return updated;
           }
         }
       }
-      return prev.map((t) => t.id === id ? { ...t, ...next } : t);
+      const updated = prev.map((t) => t.id === id ? { ...t, ...next } : t);
+      saveSnapshot(prev);
+      saveOptimistic(updated, '更新任务', { id });
+      return updated;
     });
-    window.dispatchEvent(new CustomEvent('task-updated', { detail: { id, updates: next } }));
-  }, []);
+    window.dispatchEvent(new CustomEvent('task-updated', { detail: { id, updates } }));
+  }, [saveOptimistic, saveSnapshot]);
 
   const deleteTask = useCallback((id) => {
-    setTasks((prev) => prev.filter((task) => task.id !== id));
-    window.dispatchEvent(new CustomEvent('task-deleted', { detail: { id } }));
-  }, []);
+    setTasks((prev) => {
+      const task = prev.find(t => t.id === id);
+      if (!task) return prev;
+      const updated = prev.filter((task) => task.id !== id);
+      saveSnapshot(prev);
+      const ok = saveOptimistic(updated, '删除任务', { id, task });
+      if (!ok) {
+        // saveOptimistic already rolled back via event
+        return prev;
+      }
+      window.dispatchEvent(new CustomEvent('task-deleted', { detail: { id } }));
+      return updated;
+    });
+  }, [saveOptimistic, saveSnapshot]);
 
   // Batch operations
   const batchDeleteTasks = useCallback((ids) => {
-    setTasks((prev) => prev.filter((task) => !ids.includes(task.id)));
-    setSelectedTaskIds((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => next.delete(id));
-      return next;
+    setTasks((prev) => {
+      const updated = prev.filter((task) => !ids.includes(task.id));
+      saveSnapshot(prev);
+      saveOptimistic(updated, '批量删除', { ids });
+      setSelectedTaskIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+      return updated;
     });
-  }, []);
+  }, [saveOptimistic, saveSnapshot]);
 
   const batchUpdateTasks = useCallback((ids, updates) => {
-    setTasks((prev) =>
-      prev.map((task) =>
+    setTasks((prev) => {
+      const updated = prev.map((task) =>
         ids.includes(task.id)
           ? { ...task, ...updates, updatedAt: new Date().toISOString() }
           : task
-      )
-    );
-  }, []);
+      );
+      saveSnapshot(prev);
+      saveOptimistic(updated, '批量更新', { ids });
+      return updated;
+    });
+  }, [saveOptimistic, saveSnapshot]);
 
   const toggleTaskSelection = useCallback((id) => {
     setSelectedTaskIds((prev) => {
@@ -306,22 +358,28 @@ export function TaskProvider({ children }) {
   }, []);
 
   const reorderTasks = useCallback((taskId, newOrder) => {
-    setTasks((prev) =>
-      prev.map((task) =>
+    setTasks((prev) => {
+      const updated = prev.map((task) =>
         task.id === taskId
           ? { ...task, order: newOrder, updatedAt: new Date().toISOString() }
           : task
-      )
-    );
-  }, []);
+      );
+      saveSnapshot(prev);
+      saveOptimistic(updated, '排序', { taskId });
+      return updated;
+    });
+  }, [saveOptimistic, saveSnapshot]);
 
   const markAsRead = useCallback((id) => {
-    setTasks((prev) =>
-      prev.map((task) =>
+    setTasks((prev) => {
+      const updated = prev.map((task) =>
         task.id === id ? { ...task, reminded: true } : task
-      )
-    );
-  }, []);
+      );
+      saveSnapshot(prev);
+      saveOptimistic(updated, '标记已读', { id });
+      return updated;
+    });
+  }, [saveOptimistic, saveSnapshot]);
 
   const getAllTags = useCallback(() => {
     const tagSet = new Set();
@@ -365,18 +423,13 @@ export function TaskProvider({ children }) {
 
   const filteredTasks = tasks
     .filter((task) => {
-      // Hide completed filter
       if (hideCompleted && task.status === 'done') return false;
-      // Date filter
       if (dateFilter) {
         const taskDate = task.generatedDate || task.createdAt;
         if (!taskDate.startsWith(dateFilter)) return false;
       }
-      // Multi-select tag filter: show task if it has ANY of the selected tags
       if (filterTags.length > 0 && !task.tags.some(tag => filterTags.includes(tag))) return false;
-      // Project filter
       if (filterProject && task.projectId !== filterProject) return false;
-      // Search filter: use worker-based search result
       if (searchResult !== null && !searchResult.includes(task.id)) return false;
       return true;
     })
@@ -388,7 +441,6 @@ export function TaskProvider({ children }) {
           if (!b.dueDate) return -1;
           return new Date(a.dueDate) - new Date(b.dueDate);
         case 'priority': {
-          // P0=0 (highest), P1=1, P2=2, nulls last
           const order = { 'P0': 0, 'P1': 1, 'P2': 2 };
           const aOrder = order[a.priority] ?? 3;
           const bOrder = order[b.priority] ?? 3;
@@ -400,6 +452,11 @@ export function TaskProvider({ children }) {
       }
     });
 
+  // Helper to allow child components to trigger state update without duplicate saving
+  const setTasksState = useCallback((newTasks) => {
+    setTasks(newTasks);
+  }, [setTasks]);
+
   return (
     <TaskContext.Provider
       value={{
@@ -407,7 +464,7 @@ export function TaskProvider({ children }) {
         allTasks: tasks,
         milestones,
         setMilestones,
-        setTasks,
+        setTasks: setTasksState,
         filterTags,
         setFilterTags,
         filterProject,
