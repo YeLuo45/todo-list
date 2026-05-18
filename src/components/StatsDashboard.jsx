@@ -6,6 +6,7 @@ import { generateWeeklyReport, generateMonthlyReport } from '../utils/productivi
 import { findDuplicates, getDuplicateStats, mergeDuplicateTasks, dismissDuplicateWarning, isDuplicateDismissed } from '../utils/aiDuplicateDetection';
 import { getWorkHabitSummary, analyzeWorkPatterns } from '../utils/aiWorkPattern';
 import { useTaskContext } from '../context/TaskContext';
+import { memoryManager } from '../memory/memoryManager';
 import './StatsDashboard.css';
 
 const DAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -299,6 +300,12 @@ export default function StatsDashboard({ tasks, onClose }) {
           >
             🤖 AI 分析 {duplicateGroups.length > 0 && <span className="bottleneck-badge">{duplicateGroups.length}</span>}
           </button>
+          <button 
+            className={`stats-tab ${activeTab === 'memory' ? 'active' : ''}`}
+            onClick={() => setActiveTab('memory')}
+          >
+            🧠 记忆
+          </button>
         </div>
 
         <div className="stats-body">
@@ -414,13 +421,6 @@ export default function StatsDashboard({ tasks, onClose }) {
                               });
                               // Remove other tasks
                               group.tasks.slice(1).forEach(t => {
-                                const taskToDelete = updatedTasks.find(upd => upd.id === t.id);
-                                if (!taskToDelete) {
-                                  // Task was already merged, nothing to do
-                                }
-                              });
-                              // Actually delete the duplicate tasks
-                              group.tasks.slice(1).forEach(t => {
                                 const updatedTasks = tasks.filter(task => task.id !== t.id);
                                 Object.assign(tasks, updatedTasks);
                               });
@@ -528,8 +528,131 @@ export default function StatsDashboard({ tasks, onClose }) {
               </div>
             </div>
           )}
+
+          {activeTab === 'memory' && (
+            <MemoryPanel tasks={tasks} />
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function MemoryPanel({ tasks }) {
+  const [insights, setInsights] = useState(null);
+  const [recentEpisodes, setRecentEpisodes] = useState([]);
+  const [topHabits, setTopHabits] = useState([]);
+  const [predictedDates, setPredictedDates] = useState({});
+
+  useEffect(() => {
+    // Initialize memory manager with tasks
+    memoryManager.initialize(tasks);
+    
+    // Get insights
+    const memInsights = memoryManager.getInsights(tasks);
+    setInsights(memInsights);
+    
+    // Get recent episodes
+    setRecentEpisodes(memoryManager.episodic.getRecent(5));
+    
+    // Get top habits
+    setTopHabits(memoryManager.semantic.getTopHabits(5));
+    
+    // Predict due dates for top habits
+    const predictions = {};
+    memInsights.topHabits.forEach(habit => {
+      const predicted = memoryManager.meta.predictDueDate(habit.name, tasks);
+      if (predicted) {
+        predictions[habit.name] = predicted;
+      }
+    });
+    setPredictedDates(predictions);
+    
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, [tasks]);
+
+  if (!insights) {
+    return <div className="memory-loading">加载中...</div>;
+  }
+
+  return (
+    <div className="memory-panel">
+      {/* Streak and Stats Row */}
+      <div className="memory-stats-row">
+        <div className="memory-streak-card">
+          <div className="streak-icon">🔥</div>
+          <div className="streak-value">{insights.streak}</div>
+          <div className="streak-label">连续天数</div>
+        </div>
+        <div className="memory-stat-card">
+          <div className="stat-label">完成率</div>
+          <div className="stat-value">{insights.stats.completionRate}</div>
+        </div>
+        <div className="memory-stat-card">
+          <div className="stat-label">超期任务</div>
+          <div className="stat-value overdue">{insights.stats.overdueCount}</div>
+        </div>
+        <div className="memory-stat-card">
+          <div className="stat-label">本周完成</div>
+          <div className="stat-value">{insights.stats.thisWeekCompleted}</div>
+        </div>
+      </div>
+
+      {/* Top Habits */}
+      {topHabits.length > 0 && (
+        <div className="memory-section">
+          <h4>🔄 习惯任务 TOP</h4>
+          <div className="habits-list">
+            {topHabits.map((habit, idx) => (
+              <div key={habit.id || idx} className="habit-item">
+                <div className="habit-info">
+                  <span className="habit-name">{habit.name}</span>
+                  <span className="habit-frequency">出现 {habit.frequency} 次</span>
+                </div>
+                {predictedDates[habit.name] && (
+                  <div className="habit-prediction">
+                    预测到期: {predictedDates[habit.name]}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Episodes */}
+      {recentEpisodes.length > 0 && (
+        <div className="memory-section">
+          <h4>📜 最近记忆</h4>
+          <div className="episodes-list">
+            {recentEpisodes.map((episode) => (
+              <div key={episode.id} className="episode-item">
+                <div className="episode-title">{episode.taskTitle}</div>
+                <div className="episode-meta">
+                  <span className="episode-time">
+                    {new Date(episode.createdAt).toLocaleString('zh-CN')}
+                  </span>
+                  {episode.context?.source && (
+                    <span className="episode-source">来源: {episode.context.source}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {topHabits.length === 0 && recentEpisodes.length === 0 && (
+        <div className="memory-empty">
+          <div className="empty-icon">🧠</div>
+          <p>暂无记忆数据</p>
+          <p className="empty-hint">创建更多任务，AI将自动学习您的习惯</p>
+        </div>
+      )}
     </div>
   );
 }
