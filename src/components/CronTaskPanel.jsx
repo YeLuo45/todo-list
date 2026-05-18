@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { cronScheduler } from '../subagent/cronScheduler.js';
 import { agentRunner } from '../subagent/agentRunner.js';
 import { autoChecker } from '../subagent/autoChecker.js';
+import { gistSyncer } from '../subagent/gistSyncer.js';
 import './CronTaskPanel.css';
 
 export default function CronTaskPanel({ tasks, onTaskUpdate }) {
@@ -10,12 +11,24 @@ export default function CronTaskPanel({ tasks, onTaskUpdate }) {
   const [newCron, setNewCron] = useState('0 9 * * *'); // default: daily 9am
   const [selectedTask, setSelectedTask] = useState('');
   
+  // Sync state
+  const [syncInterval, setSyncInterval] = useState('manual');
+  const [lastSync, setLastSync] = useState(null);
+  const [syncHistory, setSyncHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  
   useEffect(() => {
     // Start auto checker
     autoChecker.start();
     
     // Load scheduled tasks
     setScheduledTasks(cronScheduler.getScheduledTasks());
+    
+    // Load sync settings
+    setSyncInterval(gistSyncer.getSyncInterval());
+    setLastSync(gistSyncer.getLastSync());
+    setSyncHistory(gistSyncer.getSyncHistory());
     
     // Poll agent status
     const interval = setInterval(() => {
@@ -49,6 +62,25 @@ export default function CronTaskPanel({ tasks, onTaskUpdate }) {
     if (!selectedTask) return;
     const agentId = await agentRunner.spawnAgent({ taskId: selectedTask, action: 'process' });
     setActiveAgents(agentRunner.getAllAgents());
+  };
+  
+  const handleSyncIntervalChange = (e) => {
+    const interval = e.target.value;
+    setSyncInterval(interval);
+    gistSyncer.setSyncInterval(interval);
+  };
+  
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    const result = await gistSyncer.sync();
+    gistSyncer.addSyncHistory({
+      timestamp: new Date().toISOString(),
+      success: result.success,
+      error: result.error || null
+    });
+    setLastSync(gistSyncer.getLastSync());
+    setSyncHistory(gistSyncer.getSyncHistory());
+    setSyncing(false);
   };
   
   return (
@@ -107,6 +139,50 @@ export default function CronTaskPanel({ tasks, onTaskUpdate }) {
               </li>
             ))}
           </ul>
+        )}
+      </div>
+      
+      <div className="sync-section">
+        <h4>📤 Gist 同步</h4>
+        <div className="sync-controls">
+          <label>
+            同步间隔:
+            <select value={syncInterval} onChange={handleSyncIntervalChange}>
+              <option value="manual">手动</option>
+              <option value="hourly">每小时</option>
+              <option value="daily">每天</option>
+            </select>
+          </label>
+          <button onClick={handleSyncNow} disabled={syncing}>
+            {syncing ? '同步中...' : '立即同步'}
+          </button>
+        </div>
+        <div className="sync-info">
+          <span>最后同步: {lastSync ? lastSync.toLocaleString() : '从未同步'}</span>
+        </div>
+        <div className="sync-history-toggle">
+          <button onClick={() => setShowHistory(!showHistory)}>
+            {showHistory ? '隐藏' : '显示'} 同步历史
+          </button>
+        </div>
+        {showHistory && (
+          <div className="sync-history">
+            {syncHistory.length === 0 ? (
+              <p className="empty">暂无同步记录</p>
+            ) : (
+              <ul>
+                {syncHistory.map((entry, idx) => (
+                  <li key={idx}>
+                    <span className={`sync-status ${entry.success ? 'success' : 'error'}`}>
+                      {entry.success ? '✓' : '✗'}
+                    </span>
+                    <span>{new Date(entry.timestamp).toLocaleString()}</span>
+                    {!entry.success && <span className="sync-error">{entry.error}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </div>
     </div>
