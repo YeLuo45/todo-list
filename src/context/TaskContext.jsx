@@ -229,6 +229,7 @@ export function TaskProvider({ children }) {
       startTime: taskData.startTime || null,
       endTime: taskData.endTime || null,
       projectId: taskData.projectId || null,
+      externalUrl: taskData.externalUrl || null,
     };
 
     setTasks((prev) => {

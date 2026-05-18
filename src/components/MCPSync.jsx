@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import githubMCP from '../mcp/githubMcp.js';
 import jiraMCP from '../mcp/jiraMcp.js';
 import figmaMCP from '../mcp/figmaMcp.js';
+import { mapToTask } from '../mcp/taskMapper.js';
 import './MCPSync.css';
 
 const STATUS_CONFIG = {
@@ -40,6 +41,11 @@ function MCPSync({ onImportTask }) {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Batch import state
+  const [autoImportEnabled, setAutoImportEnabled] = useState(false);
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [importProgress, setImportProgress] = useState(0);
 
   // Unified import function
   const _importAsTask = useCallback((item, source) => {
@@ -89,6 +95,71 @@ function MCPSync({ onImportTask }) {
 
     onImportTask(task);
   }, [onImportTask]);
+
+  // Map MCP item to task using taskMapper and optionally create immediately
+  const _handleImport = useCallback((item, source, toolType = 'issue') => {
+    if (autoImportEnabled) {
+      const mappedTask = mapToTask(source, toolType, item);
+      if (mappedTask && onImportTask) {
+        onImportTask(mappedTask);
+      }
+    } else {
+      // Just select the item for batch import
+      setSelectedItems(prev => {
+        const next = new Set(prev);
+        const key = `${source}-${item.id || item.key || item.number}`;
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      });
+    }
+  }, [autoImportEnabled, onImportTask]);
+
+  // Import all selected items
+  const _importSelected = useCallback(async () => {
+    const items = Array.from(selectedItems);
+    let completed = 0;
+    setImportProgress(0);
+    
+    for (const itemKey of items) {
+      const [source, id] = itemKey.split('-');
+      let item, toolType;
+      
+      if (source === 'github') {
+        const issue = ghIssues.find(i => i.id?.toString() === id || i.number?.toString() === id);
+        item = issue;
+        toolType = 'issue';
+      } else if (source === 'jira') {
+        const issue = jiraIssues.find(i => i.id === id || i.key === id);
+        item = issue;
+        toolType = 'issue';
+      } else if (source === 'figma') {
+        const file = figmaFile;
+        item = file;
+        toolType = 'file';
+      }
+      
+      if (item) {
+        const mappedTask = mapToTask(source, toolType, item);
+        if (mappedTask && onImportTask) {
+          onImportTask(mappedTask);
+        }
+      }
+      
+      completed++;
+      setImportProgress(Math.round((completed / items.length) * 100));
+    }
+    
+    setSelectedItems(new Set());
+    setImportProgress(0);
+  }, [selectedItems, ghIssues, jiraIssues, figmaFile, onImportTask]);
+
+  // Open external URL in new tab
+  const _openExternalUrl = useCallback((url) => {
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }, []);
 
   // GitHub handlers
   const handleGithubConnect = useCallback(async () => {
@@ -261,6 +332,28 @@ function MCPSync({ onImportTask }) {
     <div className="mcp-sync">
       <div className="mcp-sync-header">
         <h3>🔗 MCP 同步</h3>
+        <div className="mcp-sync-controls">
+          <label className="auto-import-toggle">
+            <input
+              type="checkbox"
+              checked={autoImportEnabled}
+              onChange={(e) => setAutoImportEnabled(e.target.checked)}
+            />
+            <span>自动导入</span>
+          </label>
+          {selectedItems.size > 0 && (
+            <>
+              <button className="btn-import-all" onClick={_importSelected}>
+                导入已选 ({selectedItems.size})
+              </button>
+              {importProgress > 0 && (
+                <div className="import-progress">
+                  <div className="progress-bar" style={{ width: `${importProgress}%` }} />
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="mcp-tabs">
@@ -348,32 +441,56 @@ function MCPSync({ onImportTask }) {
             <div className="mcp-data-list">
               <h4>Issues ({ghIssues.length})</h4>
               <div className="data-items">
-                {ghIssues.map((issue) => (
-                  <div key={issue.id || issue.number} className="data-item">
-                    <div className="item-header">
-                      <span className="item-number">#{issue.number}</span>
-                      <span className="item-state" data-state={issue.state}>
-                        {issue.state === 'open' ? '🟢 Open' : '🔴 Closed'}
-                      </span>
-                    </div>
-                    <div className="item-title">{issue.title}</div>
-                    {issue.labels && issue.labels.length > 0 && (
-                      <div className="item-labels">
-                        {issue.labels.map((label, idx) => (
-                          <span key={idx} className="item-label">
-                            {typeof label === 'string' ? label : label.name}
-                          </span>
-                        ))}
+                {ghIssues.map((issue) => {
+                  const itemKey = `github-${issue.id || issue.number}`;
+                  const isSelected = selectedItems.has(itemKey);
+                  return (
+                    <div key={issue.id || issue.number} className={`data-item ${isSelected ? 'selected' : ''}`}>
+                      <div className="item-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => _handleImport(issue, 'github', 'issue')}
+                        />
                       </div>
-                    )}
-                    <button 
-                      className="btn-import"
-                      onClick={() => _importAsTask(issue, 'github')}
-                    >
-                      导入为任务
-                    </button>
-                  </div>
-                ))}
+                      <div className="item-content">
+                        <div className="item-header">
+                          <span className="item-number">#{issue.number}</span>
+                          <span className="item-state" data-state={issue.state}>
+                            {issue.state === 'open' ? '🟢 Open' : '🔴 Closed'}
+                          </span>
+                        </div>
+                        <div className="item-title">{issue.title}</div>
+                        {issue.labels && issue.labels.length > 0 && (
+                          <div className="item-labels">
+                            {issue.labels.map((label, idx) => (
+                              <span key={idx} className="item-label">
+                                {typeof label === 'string' ? label : label.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="item-actions">
+                          {issue.html_url && (
+                            <button
+                              className="btn-external"
+                              onClick={() => _openExternalUrl(issue.html_url)}
+                              title="打开外部链接"
+                            >
+                              🔗
+                            </button>
+                          )}
+                          <button 
+                            className="btn-import"
+                            onClick={() => autoImportEnabled ? _handleImport(issue, 'github', 'issue') : _importAsTask(issue, 'github')}
+                          >
+                            {autoImportEnabled ? '✓ 自动导入' : '导入为任务'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -477,26 +594,50 @@ function MCPSync({ onImportTask }) {
             <div className="mcp-data-list">
               <h4>Issues ({jiraIssues.length})</h4>
               <div className="data-items">
-                {jiraIssues.map((issue) => (
-                  <div key={issue.id || issue.key} className="data-item">
-                    <div className="item-header">
-                      <span className="item-number">{issue.key}</span>
-                      <span className="item-state" data-state={issue.status?.toLowerCase()}>
-                        {issue.status || 'Unknown'}
-                      </span>
+                {jiraIssues.map((issue) => {
+                  const itemKey = `jira-${issue.id || issue.key}`;
+                  const isSelected = selectedItems.has(itemKey);
+                  return (
+                    <div key={issue.id || issue.key} className={`data-item ${isSelected ? 'selected' : ''}`}>
+                      <div className="item-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => _handleImport(issue, 'jira', 'issue')}
+                        />
+                      </div>
+                      <div className="item-content">
+                        <div className="item-header">
+                          <span className="item-number">{issue.key}</span>
+                          <span className="item-state" data-state={issue.status?.toLowerCase()}>
+                            {issue.status || 'Unknown'}
+                          </span>
+                        </div>
+                        <div className="item-title">{issue.summary || issue.title}</div>
+                        <div className="item-meta">
+                          <span className="item-priority">优先级: {issue.priority || 'Medium'}</span>
+                        </div>
+                        <div className="item-actions">
+                          {issue.self && (
+                            <button
+                              className="btn-external"
+                              onClick={() => _openExternalUrl(issue.self)}
+                              title="打开外部链接"
+                            >
+                              🔗
+                            </button>
+                          )}
+                          <button 
+                            className="btn-import"
+                            onClick={() => autoImportEnabled ? _handleImport(issue, 'jira', 'issue') : _importAsTask(issue, 'jira')}
+                          >
+                            {autoImportEnabled ? '✓ 自动导入' : '导入为任务'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="item-title">{issue.summary || issue.title}</div>
-                    <div className="item-meta">
-                      <span className="item-priority">优先级: {issue.priority || 'Medium'}</span>
-                    </div>
-                    <button 
-                      className="btn-import"
-                      onClick={() => _importAsTask(issue, 'jira')}
-                    >
-                      导入为任务
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -584,16 +725,36 @@ function MCPSync({ onImportTask }) {
               <h4>文件: {figmaFile.name || figmaFileKey}</h4>
               <div className="data-items">
                 <div className="data-item">
-                  <div className="item-title">{figmaFile.name || 'Figma 文件'}</div>
-                  <div className="item-meta">
-                    <span>最后修改: {figmaFile.lastModified || 'Unknown'}</span>
+                  <div className="item-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.has(`figma-${figmaFileKey}`)}
+                      onChange={() => _handleImport(figmaFile, 'figma', 'file')}
+                    />
                   </div>
-                  <button 
-                    className="btn-import"
-                    onClick={() => _importAsTask(figmaFile, 'figma')}
-                  >
-                    导入为任务
-                  </button>
+                  <div className="item-content">
+                    <div className="item-title">{figmaFile.name || 'Figma 文件'}</div>
+                    <div className="item-meta">
+                      <span>最后修改: {figmaFile.lastModified || 'Unknown'}</span>
+                    </div>
+                    <div className="item-actions">
+                      {figmaFile.thumbnailUrl && (
+                        <button
+                          className="btn-external"
+                          onClick={() => _openExternalUrl(figmaFile.thumbnailUrl)}
+                          title="打开外部链接"
+                        >
+                          🔗
+                        </button>
+                      )}
+                      <button 
+                        className="btn-import"
+                        onClick={() => autoImportEnabled ? _handleImport(figmaFile, 'figma', 'file') : _importAsTask(figmaFile, 'figma')}
+                      >
+                        {autoImportEnabled ? '✓ 自动导入' : '导入为任务'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -603,23 +764,38 @@ function MCPSync({ onImportTask }) {
             <div className="mcp-data-list">
               <h4>评论 ({figmaComments.length})</h4>
               <div className="data-items">
-                {figmaComments.map((comment, idx) => (
-                  <div key={comment.id || idx} className="data-item">
-                    <div className="item-header">
-                      <span className="item-number">{comment.author?.name || 'Unknown'}</span>
-                      <span className="item-date">
-                        {comment.created_at ? new Date(comment.created_at).toLocaleDateString() : ''}
-                      </span>
+                {figmaComments.map((comment, idx) => {
+                  const itemKey = `figma-comment-${comment.id || idx}`;
+                  const isSelected = selectedItems.has(itemKey);
+                  return (
+                    <div key={comment.id || idx} className={`data-item ${isSelected ? 'selected' : ''}`}>
+                      <div className="item-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => _handleImport(comment, 'figma', 'file')}
+                        />
+                      </div>
+                      <div className="item-content">
+                        <div className="item-header">
+                          <span className="item-number">{comment.author?.name || 'Unknown'}</span>
+                          <span className="item-date">
+                            {comment.created_at ? new Date(comment.created_at).toLocaleDateString() : ''}
+                          </span>
+                        </div>
+                        <div className="item-title">{comment.message || comment.text}</div>
+                        <div className="item-actions">
+                          <button 
+                            className="btn-import"
+                            onClick={() => autoImportEnabled ? _handleImport(comment, 'figma', 'file') : _importAsTask(comment, 'figma')}
+                          >
+                            {autoImportEnabled ? '✓ 自动导入' : '导入为任务'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="item-title">{comment.message || comment.text}</div>
-                    <button 
-                      className="btn-import"
-                      onClick={() => handleImportFigmaItem(comment)}
-                    >
-                      导入为任务
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
