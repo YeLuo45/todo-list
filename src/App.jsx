@@ -22,6 +22,7 @@ import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import ConflictModal from './components/ConflictModal';
 import InsightsPanel from './components/InsightsPanel';
+import AgentPanel from './components/AgentPanel';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
 import { getGistConfig, createBackupGist } from './utils/gistSync';
 import { useAppStore } from './store/useAppStore';
@@ -41,6 +42,7 @@ function AppContent() {
   const [showGoogleCalendarSync, setShowGoogleCalendarSync] = useState(false);
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [showAgentPanel, setShowAgentPanel] = useState(false);
   const filterBarRef = useRef();
   const recognitionRef = useRef(null);
 
@@ -312,6 +314,9 @@ function AppContent() {
               isGistOnline={gistOnline}
               onClick={() => setShowSettings(true)}
             />
+            <button className="theme-toggle" onClick={() => setShowAgentPanel(v => !v)} title="Agent Panel">
+              🤖 Agent
+            </button>
           </div>
         </div>
       </header>
@@ -490,6 +495,16 @@ function AppContent() {
         collapsed={insightsCollapsed}
         onToggle={() => setInsightsCollapsed(c => !c)}
       />
+
+      {showAgentPanel && (
+        <AgentPanel
+          onTaskCreate={(task) => {
+            // Add the task to the task list
+            setTasks(prev => [task, ...prev]);
+            window.dispatchEvent(new CustomEvent('task-created', { detail: task }));
+          }}
+        />
+      )}
 
       {toasts.map((toast) => (
         <ReminderToast
