@@ -4,10 +4,9 @@
  */
 
 export const MCP_SERVERS = {
-  github: {
-    command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-github']
-  }
+  github: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-github'] },
+  jira: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-jira'] },
+  figma: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-figma'] }
 };
 
 /**

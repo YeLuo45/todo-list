@@ -1,4 +1,4 @@
-.github-sync {
+.mcp-sync {
   background: var(--card-bg, #fff);
   border-radius: 12px;
   padding: 20px;
@@ -6,31 +6,77 @@
   margin: 16px 0;
 }
 
-.github-sync-header {
+.mcp-sync-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
-.github-sync-header h3 {
+.mcp-sync-header h3 {
   margin: 0;
   font-size: 16px;
   color: var(--text-primary, #1f2937);
 }
 
-.status-badge {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  color: white;
+.mcp-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--border-color, #e5e7eb);
+  margin-bottom: 16px;
 }
 
-.github-sync-form {
+.mcp-tab {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #6b7280);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.mcp-tab:hover {
+  color: var(--text-primary, #1f2937);
+}
+
+.mcp-tab.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+.mcp-sync-error {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.mcp-tab-content {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.mcp-sync-form {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.form-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
 }
 
 .form-group {
@@ -120,29 +166,27 @@
   cursor: not-allowed;
 }
 
-.github-sync-error {
-  margin-top: 12px;
-  padding: 10px 12px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  color: #dc2626;
-  font-size: 13px;
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
 }
 
-.github-sync-issues {
+.mcp-data-list {
   margin-top: 20px;
   border-top: 1px solid var(--border-color, #e5e7eb);
   padding-top: 16px;
 }
 
-.github-sync-issues h4 {
+.mcp-data-list h4 {
   margin: 0 0 12px 0;
   font-size: 14px;
   color: var(--text-primary, #1f2937);
 }
 
-.issues-list {
+.data-items {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -150,43 +194,47 @@
   overflow-y: auto;
 }
 
-.issue-item {
+.data-item {
   padding: 12px;
   background: var(--bg-secondary, #f9fafb);
   border-radius: 8px;
   border: 1px solid var(--border-color, #e5e7eb);
 }
 
-.issue-header {
+.item-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
 }
 
-.issue-number {
+.item-number {
   font-size: 12px;
   color: var(--text-secondary, #6b7280);
   font-family: monospace;
 }
 
-.issue-state {
+.item-state {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 12px;
-}
-
-.issue-state[data-state="open"] {
   background: #dcfce7;
   color: #166534;
 }
 
-.issue-state[data-state="closed"] {
+.item-state[data-state="closed"],
+.item-state[data-state="done"] {
   background: #fee2e2;
   color: #991b1b;
 }
 
-.issue-title {
+.item-state[data-state="in progress"],
+.item-state[data-state="in_review"] {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.item-title {
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary, #1f2937);
@@ -194,19 +242,35 @@
   line-height: 1.4;
 }
 
-.issue-labels {
+.item-labels {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 10px;
 }
 
-.issue-label {
+.item-label {
   font-size: 11px;
   padding: 2px 8px;
   background: var(--label-bg, #e0e7ff);
   color: var(--label-color, #3730a3);
   border-radius: 12px;
+}
+
+.item-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  margin-bottom: 10px;
+}
+
+.item-priority {
+  font-weight: 500;
+}
+
+.item-date {
+  color: var(--text-secondary, #6b7280);
 }
 
 .btn-import {
@@ -224,7 +288,7 @@
   background: #059669;
 }
 
-.github-sync-empty {
+.mcp-empty {
   margin-top: 16px;
   text-align: center;
   color: var(--text-secondary, #6b7280);
@@ -233,7 +297,7 @@
 }
 
 /* Dark mode support */
-[data-theme="dark"] .github-sync {
+[data-theme="dark"] .mcp-sync {
   --card-bg: #1f2937;
   --text-primary: #f9fafb;
   --text-secondary: #9ca3af;
@@ -245,35 +309,42 @@
   --label-color: #e0e7ff;
 }
 
-[data-theme="dark"] .github-sync-form .form-group input {
+[data-theme="dark"] .mcp-sync-form .form-group input {
   background: #374151;
   border-color: #4b5563;
   color: #f9fafb;
 }
 
-[data-theme="dark"] .github-sync-form .form-group input:focus {
+[data-theme="dark"] .mcp-sync-form .form-group input:focus {
   border-color: #60a5fa;
 }
 
-[data-theme="dark"] .issue-item {
+[data-theme="dark"] .data-item {
   background: #374151;
   border-color: #4b5563;
 }
 
-[data-theme="dark"] .issue-state[data-state="open"] {
+[data-theme="dark"] .item-state {
   background: #14532d;
   color: #bbf7d0;
 }
 
-[data-theme="dark"] .issue-state[data-state="closed"] {
+[data-theme="dark"] .item-state[data-state="closed"],
+[data-theme="dark"] .item-state[data-state="done"] {
   background: #7f1d1d;
   color: #fecaca;
 }
 
-[data-theme="dark"] .github-sync-issues h4 {
+[data-theme="dark"] .item-state[data-state="in progress"],
+[data-theme="dark"] .item-state[data-state="in_review"] {
+  background: #78350f;
+  color: #fef3c7;
+}
+
+[data-theme="dark"] .mcp-data-list h4 {
   color: #f9fafb;
 }
 
-[data-theme="dark"] .issue-title {
+[data-theme="dark"] .item-title {
   color: #f9fafb;
 }
