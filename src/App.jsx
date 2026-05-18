@@ -48,6 +48,7 @@ function AppContent() {
   const [syncConnected, setSyncConnected] = useState(false);
   const [lastHeartbeat, setLastHeartbeat] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [gistOnline, setGistOnline] = useState(true);
 
   // 冲突解决状态
   const [showConflict, setShowConflict] = useState(false);
@@ -71,7 +72,7 @@ function AppContent() {
   } = useSync(allTasks, setTasks);
 
   // SharedWorker 跨标签页同步
-  const { connected, lastHeartbeat: swHeartbeat, pendingCount: swPending, notifyTaskChange } = useSyncWorker((changedTask) => {
+  const { connected, lastHeartbeat: swHeartbeat, pendingCount: swPending, isGistOnline, notifyTaskChange } = useSyncWorker((changedTask) => {
     // 跨标签页任务变更：更新 tasks
     setTasks(prev => {
       // 删除操作
@@ -93,6 +94,7 @@ function AppContent() {
   useEffect(() => { setSyncConnected(connected); }, [connected]);
   useEffect(() => { setLastHeartbeat(swHeartbeat); }, [swHeartbeat]);
   useEffect(() => { setPendingCount(swPending); }, [swPending]);
+  useEffect(() => { setGistOnline(typeof isGistOnline === 'boolean' ? isGistOnline : true); }, [isGistOnline]);
 
   // 监听 TaskContext 事件并广播到其他标签页
   useEffect(() => {
@@ -307,6 +309,7 @@ function AppContent() {
               lastSynced={lastSynced}
               syncConnected={syncConnected}
               pendingCount={pendingCount}
+              isGistOnline={gistOnline}
               onClick={() => setShowSettings(true)}
             />
           </div>

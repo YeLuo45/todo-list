@@ -9,7 +9,7 @@ const statusConfig = {
   offline: { icon: '📴', label: '离线', color: '#94a3b8' },
 };
 
-export default function SyncStatus({ status, lastSynced, onClick, syncConnected, pendingCount }) {
+export default function SyncStatus({ status, lastSynced, onClick, syncConnected, pendingCount, isGistOnline }) {
   const config = statusConfig[status] || statusConfig.idle;
   const timeStr = lastSynced
     ? new Date(lastSynced).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
@@ -26,6 +26,15 @@ export default function SyncStatus({ status, lastSynced, onClick, syncConnected,
           title={syncConnected ? 'SharedWorker 已连接' : 'SharedWorker 未连接'}
         >
           {syncConnected ? '●' : '○'}
+        </span>
+      )}
+      {isGistOnline !== undefined && (
+        <span
+          className="sync-gist-status"
+          style={{ color: isGistOnline ? '#22c55e' : '#ef4444' }}
+          title={isGistOnline ? 'GitHub Gist 在线' : 'GitHub Gist 离线'}
+        >
+          ☁️
         </span>
       )}
       {pendingCount > 0 && (

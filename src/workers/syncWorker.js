@@ -8,8 +8,13 @@ const PORT_MAP = new Map(); // port -> clientId
 const PENDING_OPS_KEY = 'hermes_pending_ops_v1';
 let syncInterval = null;
 let lastSyncTime = null;
+let lastHeartbeatSent = null; // 上次心跳时间
 let pendingChanges = new Map(); // taskId -> timestamp
 let gistConfig = null; // { token, gistId }
+let gistFetchController = null; // 用于取消正在进行的请求
+let isGistOnline = true; // GitHub Gist 连通性状态
+let reconnectAttempts = 0; // 断线重连尝试次数
+const MAX_RECONNECT_INTERVAL = 300000; // 5min 最大重连间隔
 
 // 持久化操作队列
 let pendingOps = [];
@@ -114,16 +119,25 @@ function broadcastToAll(message) {
 
 function broadcastSyncHeartbeat() {
   const now = Date.now();
+  // 避免重复发送心跳（浏览器空闲时可能多次触发）
+  if (lastHeartbeatSent && now - lastHeartbeatSent < SYNC_INTERVAL * 0.5) return;
+  lastHeartbeatSent = now;
   PORT_MAP.forEach((client, port) => {
     port.postMessage({
       type: 'heartbeat',
       payload: {
         time: now,
         lastSyncTime,
-        pendingCount: pendingOps.length
+        pendingCount: pendingOps.length,
+        isGistOnline
       }
     });
   });
+  // 断线时尝试增加重连间隔
+  if (!isGistOnline) {
+    reconnectAttempts = Math.min(reconnectAttempts + 1, 6);
+    console.log(`[syncWorker] Reconnect attempt ${reconnectAttempts}, next interval: ${Math.min(1000 * Math.pow(2, reconnectAttempts), MAX_RECONNECT_INTERVAL)}ms`);
+  }
 }
 
 /**
@@ -161,9 +175,19 @@ async function handleSyncRequest(port, payload) {
     return;
   }
 
-  try {
+  // 取消正在进行的请求
+  if (gistFetchController) {
+    gistFetchController.abort();
+  }
+  gistFetchController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+
+  const doRetry = (attempts) => {
+    const delay = Math.min(1000 * Math.pow(2, attempts), MAX_RECONNECT_INTERVAL);
+    return new Promise((resolve) => setTimeout(resolve, delay));
+  };
+
+  const performFetch = async (action) => {
     const { token, gistId } = gistConfig;
-    const action = payload?.action || 'pull';
 
     if (action === 'pull') {
       const response = await fetch(`https://api.github.com/gists/${gistId}`, {
@@ -171,7 +195,8 @@ async function handleSyncRequest(port, payload) {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.github+json',
           'X-GitHub-Api-Version': '2022-11-28'
-        }
+        },
+        signal: gistFetchController?.signal
       });
 
       if (!response.ok) {
@@ -182,20 +207,13 @@ async function handleSyncRequest(port, payload) {
       const fileContent = gistData.files[GIST_FILENAME];
 
       if (!fileContent) {
-        port.postMessage({
-          type: 'sync-result',
-          payload: {
-            action: 'pull',
-            success: true,
-            data: null,
-            lastSyncTime: lastSyncTime
-          }
-        });
-        return;
+        return { action: 'pull', success: true, data: null, lastSyncTime };
       }
 
       const content = JSON.parse(fileContent.content);
       lastSyncTime = Date.now();
+      isGistOnline = true;
+      reconnectAttempts = 0;
 
       const localTasks = payload?.localTasks;
       let mergedData = content;
@@ -227,7 +245,7 @@ async function handleSyncRequest(port, payload) {
         }
       }
 
-      port.postMessage({
+      return {
         type: 'sync-result',
         payload: {
           action: 'pull',
@@ -235,12 +253,12 @@ async function handleSyncRequest(port, payload) {
           data: mergedData,
           lastSyncTime: lastSyncTime,
           pendingCount: pendingOps.length,
-          hadConflicts: !!content.autoMerged
+          hadConflicts: !!content.autoMerged,
+          isOnline: true
         }
-      });
+      };
 
     } else if (action === 'push') {
-      // 推送本地任务到 Gist
       const { tasks } = payload;
       const updatedContent = JSON.stringify({
         tasks: tasks || [],
@@ -262,7 +280,8 @@ async function handleSyncRequest(port, payload) {
               content: updatedContent
             }
           }
-        })
+        }),
+        signal: gistFetchController?.signal
       });
 
       if (!response.ok) {
@@ -273,22 +292,67 @@ async function handleSyncRequest(port, payload) {
       pendingChanges.clear();
       pendingOps = [];
       clearPendingOps();
+      isGistOnline = true;
+      reconnectAttempts = 0;
 
-      port.postMessage({
+      return {
         type: 'sync-result',
         payload: {
           action: 'push',
           success: true,
           lastSyncTime: lastSyncTime,
-          pendingCount: 0
+          pendingCount: 0,
+          isOnline: true
         }
-      });
+      };
+    }
+  };
+
+  try {
+    const action = payload?.action || 'pull';
+    let result;
+
+    for (let attempt = 0; attempt <= reconnectAttempts; attempt++) {
+      try {
+        const outcome = await performFetch(action);
+        if (outcome.type === 'sync-result') {
+          result = outcome;
+        } else {
+          result = outcome;
+        }
+        break;
+      } catch (error) {
+        console.warn(`[syncWorker] Fetch attempt ${attempt + 1} failed:`, error.message);
+        if (attempt < reconnectAttempts || attempt < 3) {
+          await doRetry(attempt);
+          isGistOnline = false;
+          broadcastToAll({ type: 'online-status', payload: { isOnline: false } });
+        } else {
+          isGistOnline = false;
+          broadcastToAll({ type: 'online-status', payload: { isOnline: false } });
+          port.postMessage({
+            type: 'sync-error',
+            payload: { error: error.message, isOnline: false }
+          });
+          return;
+        }
+      }
+    }
+
+    if (result) {
+      if (result.type === 'sync-result') {
+        port.postMessage(result);
+      } else {
+        port.postMessage({ type: 'sync-result', payload: result });
+      }
     }
   } catch (error) {
     console.error('[syncWorker] Sync error:', error);
+    isGistOnline = false;
+    broadcastToAll({ type: 'online-status', payload: { isOnline: false } });
     port.postMessage({
       type: 'sync-error',
-      payload: { error: error.message }
+      payload: { error: error.message, isOnline: false }
     });
   }
 }

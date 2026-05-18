@@ -11,6 +11,7 @@ export function useSyncWorker(onTaskChange) {
   const [connected, setConnected] = useState(false);
   const [lastHeartbeat, setLastHeartbeat] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [isGistOnline, setIsGistOnline] = useState(true);
   
   const taskChangeRef = useRef(onTaskChange);
   taskChangeRef.current = onTaskChange;
@@ -43,9 +44,17 @@ export function useSyncWorker(onTaskChange) {
             case 'heartbeat':
               setLastHeartbeat(payload.time);
               setPendingCount(payload.pendingCount);
+              if (payload.isGistOnline !== undefined) setIsGistOnline(payload.isGistOnline);
               break;
             case 'pending-updated':
               setPendingCount(payload.pendingCount);
+              break;
+            case 'online-status':
+              setIsGistOnline(payload.isOnline);
+              break;
+            case 'sync-error':
+              if (payload.isOnline === false) setIsGistOnline(false);
+              console.error('[useSyncWorker] Sync error:', payload.error);
               break;
             case 'sync-complete':
               console.log('[useSyncWorker] Sync complete:', payload);
@@ -94,6 +103,7 @@ export function useSyncWorker(onTaskChange) {
     connected,
     lastHeartbeat,
     pendingCount,
+    isGistOnline,
     notifyTaskChange,
     requestSync,
   };
