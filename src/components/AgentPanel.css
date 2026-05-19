@@ -7,11 +7,15 @@
 
 .agent-status {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
 
 .agent-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
@@ -24,6 +28,53 @@
   color: #4ade80;
 }
 
+.agent-name {
+  font-weight: bold;
+}
+
+.agent-restored {
+  font-size: 10px;
+}
+
+.agent-msg-count {
+  opacity: 0.8;
+}
+
+.agent-last-active {
+  opacity: 0.6;
+  font-size: 10px;
+}
+
+/* Tabs */
+.agent-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 8px;
+}
+
+.agent-tab {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.agent-tab.active {
+  background: #2d2d44;
+  color: #fff;
+}
+
+.agent-tab:hover:not(.active) {
+  background: #252538;
+  color: #aaa;
+}
+
+/* Input */
 .agent-input-form {
   display: flex;
   gap: 8px;
@@ -39,16 +90,30 @@
   color: #fff;
 }
 
+.agent-input:focus {
+  outline: none;
+  border-color: #4ade80;
+}
+
+/* Messages */
 .agent-messages {
   margin-bottom: 16px;
 }
 
+.agent-messages h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #888;
+}
+
 .message {
   display: flex;
+  align-items: center;
   gap: 8px;
   padding: 8px;
   border-radius: 4px;
   margin-bottom: 4px;
+  flex-wrap: wrap;
 }
 
 .message.user {
@@ -59,24 +124,135 @@
   background: #2d2d44;
 }
 
+.message-label {
+  flex-shrink: 0;
+}
+
+.message-text {
+  flex: 1;
+  word-break: break-word;
+}
+
+.message-time {
+  font-size: 10px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* Review Results */
 .review-results {
   background: #0f0f1a;
   padding: 12px;
   border-radius: 4px;
 }
 
+.review-results h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #888;
+}
+
 .review-item {
   margin-bottom: 8px;
 }
 
-.approved {
-  color: #4ade80;
+/* History */
+.agent-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
+.history-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.history-filter {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #0f0f1a;
+  color: #fff;
+  font-size: 12px;
+}
+
+.clear-history-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background: #5a2d2d;
+  color: #f87171;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.clear-history-btn:hover {
+  background: #7a3d3d;
+}
+
+.history-timeline {
+  max-height: 400px;
+  overflow-y: auto;
+  background: #0f0f1a;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.history-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 4px;
+  border-bottom: 1px solid #222;
+  font-size: 12px;
+  align-items: center;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-agent {
+  color: #60a5fa;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.history-event {
+  color: #e2e8f0;
+}
+
+.history-title {
+  color: #a78bfa;
+  font-style: italic;
+}
+
+.history-time {
+  color: #666;
+  font-size: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.empty-hint {
+  color: #666;
+  text-align: center;
+  padding: 20px;
+  font-size: 13px;
+}
+
+/* Light mode */
 @media (prefers-color-scheme: light) {
   .agent-panel { background: #f5f5f5; }
   .agent-input { background: #fff; color: #000; border-color: #ddd; }
   .message.user { background: #e3f2fd; }
   .message.agent { background: #e8e8e8; }
   .review-results { background: #fff; }
+  .history-filter { background: #fff; color: #000; border-color: #ddd; }
+  .history-timeline { background: #fafafa; }
+  .history-item { border-bottom-color: #eee; }
+  .clear-history-btn { background: #fee; color: #c00; }
 }
