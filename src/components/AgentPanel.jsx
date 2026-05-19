@@ -5,6 +5,8 @@ import { ReviewAgent } from '../agents/reviewAgent.js';
 import { ReminderAgent } from '../agents/reminderAgent.js';
 import { agentHistory } from '../agents/agentHistory.js';
 import { toolRegistry } from '../agents/toolRegistry.js';
+import { parallelExecutor } from '../agents/parallelExecutor.js';
+import { votingEngine } from '../agents/votingEngine.js';
 
 const creatorAgent = new CreatorAgent();
 const reviewAgent = new ReviewAgent();
@@ -20,10 +22,16 @@ export default function AgentPanel({ onTaskCreate }) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [reviewResults, setReviewResults] = useState([]);
-  const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'history'
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' | 'history' | 'tools' | 'parallel'
   const [agentStatuses, setAgentStatuses] = useState({});
   const [historyRecords, setHistoryRecords] = useState([]);
   const [historyFilter, setHistoryFilter] = useState('all');
+  const [parallelMode, setParallelMode] = useState(false);
+  const [parallelResults, setParallelResults] = useState(null);
+  const [votingActive, setVotingActive] = useState(false);
+  const [votingQuestion, setVotingQuestion] = useState('');
+  const [votingOptions, setVotingOptions] = useState([]);
+  const [votingResults, setVotingResults] = useState(null);
 
   // Load agent statuses and history on mount
   useEffect(() => {
@@ -116,6 +124,54 @@ export default function AgentPanel({ onTaskCreate }) {
     return map[event] || `📌 ${event}`;
   };
 
+  // Parallel execution handler
+  const handleParallelExecute = async () => {
+    const taskData = {
+      id: crypto.randomUUID(),
+      title: input || '并行任务测试',
+      description: '多Agent并行处理',
+    };
+
+    // Register agents
+    parallelExecutor.registerAgent('CreatorAgent', creatorAgent);
+    parallelExecutor.registerAgent('ReviewAgent', reviewAgent);
+    parallelExecutor.registerAgent('ReminderAgent', reminderAgent);
+
+    const results = await parallelExecutor.executeParallel(
+      ['CreatorAgent', 'ReviewAgent', 'ReminderAgent'],
+      taskData
+    );
+    setParallelResults(results);
+    agentHistory.addRecord('System', 'parallel-executed', { agentCount: 3 });
+  };
+
+  // Voting handlers
+  const handleStartVoting = () => {
+    if (!votingQuestion || votingOptions.length < 2) return;
+    votingEngine.startVoting(votingQuestion, votingOptions);
+    setVotingActive(true);
+    setVotingResults(null);
+    agentHistory.addRecord('System', 'voting-started', { question: votingQuestion });
+  };
+
+  const handleCastVote = (option) => {
+    const voterId = 'User'; // In real scenario, could be agent IDs
+    const result = votingEngine.castVote(voterId, option);
+    if (result.success) {
+      const tally = votingEngine.tallyVotes();
+      setVotingResults(tally);
+    }
+  };
+
+  const handleCloseVoting = () => {
+    const results = votingEngine.closeVoting();
+    setVotingActive(false);
+    setVotingQuestion('');
+    setVotingOptions([]);
+    setVotingResults(null);
+    agentHistory.addRecord('System', 'voting-closed', { results });
+  };
+
   return (
     <div className="agent-panel">
       <h3>🤖 Agent 控制面板</h3>
@@ -154,6 +210,12 @@ export default function AgentPanel({ onTaskCreate }) {
           onClick={() => setActiveTab('tools')}
         >
           🛠️ 工具
+        </button>
+        <button
+          className={`agent-tab ${activeTab === 'parallel' ? 'active' : ''}`}
+          onClick={() => setActiveTab('parallel')}
+        >
+          ⚡ 并行
         </button>
       </div>
 
@@ -260,6 +322,93 @@ export default function AgentPanel({ onTaskCreate }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {activeTab === 'parallel' && (
+        <div className="agent-parallel">
+          <div className="parallel-section">
+            <h4>⚡ 并行执行</h4>
+            <p className="parallel-hint">选择一个任务，触发多个Agent并行处理</p>
+            <button
+              className="parallel-execute-btn"
+              onClick={handleParallelExecute}
+              disabled={parallelResults !== null}
+            >
+              执行所有Agent
+            </button>
+            {parallelResults && (
+              <div className="parallel-results">
+                <h5>执行结果</h5>
+                {parallelResults.map((r, i) => (
+                  <div key={i} className={`parallel-result-item ${r.success ? 'success' : 'error'}`}>
+                    <span className="result-agent">[{r.agentId}]</span>
+                    <span className="result-status">{r.success ? '✅ 成功' : '❌ 失败'}</span>
+                    {r.duration && <span className="result-duration">{r.duration}ms</span>}
+                    {r.result?.action && <span className="result-action">{r.result.action}</span>}
+                  </div>
+                ))}
+                <button className="clear-parallel-btn" onClick={() => setParallelResults(null)}>清除</button>
+              </div>
+            )}
+          </div>
+
+          <div className="voting-section">
+            <h4>🗳️ 投票决策</h4>
+            {!votingActive ? (
+              <div className="voting-setup">
+                <input
+                  type="text"
+                  placeholder="输入投票问题..."
+                  value={votingQuestion}
+                  onChange={(e) => setVotingQuestion(e.target.value)}
+                  className="voting-question-input"
+                />
+                <div className="voting-options-setup">
+                  <button className="add-option-btn" onClick={() => setVotingOptions(prev => [...prev, `选项${prev.length + 1}`])}>
+                    + 添加选项
+                  </button>
+                  {votingOptions.map((opt, i) => (
+                    <div key={i} className="voting-option-item">
+                      <span>{opt}</span>
+                      <button className="remove-option-btn" onClick={() => setVotingOptions(prev => prev.filter((_, idx) => idx !== i))}>×</button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  className="start-vote-btn"
+                  onClick={handleStartVoting}
+                  disabled={!votingQuestion || votingOptions.length < 2}
+                >
+                  开始投票
+                </button>
+              </div>
+            ) : (
+              <div className="voting-active">
+                <p className="voting-question-label">{votingQuestion}</p>
+                <div className="voting-ballots">
+                  {votingOptions.map((opt, i) => (
+                    <button key={i} className="vote-btn" onClick={() => handleCastVote(opt)}>
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                {votingResults && (
+                  <div className="voting-results">
+                    <h5>投票结果</h5>
+                    {votingResults.map((r, i) => (
+                      <div key={i} className="vote-result-item">
+                        <span className="vote-option">{r.label}</span>
+                        <span className="vote-count">{r.votes} 票</span>
+                        <span className="vote-voters">{r.voters.join(', ')}</span>
+                      </div>
+                    ))}
+                    <button className="close-vote-btn" onClick={handleCloseVoting}>关闭投票</button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

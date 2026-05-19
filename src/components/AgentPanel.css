@@ -315,3 +315,258 @@
   .agent-tools-header { color: #3b82f6; }
   .tool-badge-name { color: #16a34a; }
 }
+
+/* Parallel tab */
+.agent-parallel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.parallel-section,
+.voting-section {
+  background: #0f0f1a;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.parallel-section h4,
+.voting-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #e2e8f0;
+}
+
+.parallel-hint {
+  color: #888;
+  font-size: 12px;
+  margin: 0 0 12px 0;
+}
+
+.parallel-execute-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background: #4ade80;
+  color: #000;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.parallel-execute-btn:disabled {
+  background: #333;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.parallel-results {
+  margin-top: 12px;
+}
+
+.parallel-results h5 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #888;
+}
+
+.parallel-result-item {
+  display: flex;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.parallel-result-item.success {
+  background: #2d5a27;
+}
+
+.parallel-result-item.error {
+  background: #5a2d2d;
+}
+
+.result-agent {
+  color: #60a5fa;
+  font-weight: bold;
+}
+
+.result-status {
+  color: #e2e8f0;
+}
+
+.result-duration {
+  color: #888;
+  margin-left: auto;
+}
+
+.result-action {
+  color: #a78bfa;
+}
+
+.clear-parallel-btn {
+  margin-top: 8px;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  background: #333;
+  color: #888;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+/* Voting */
+.voting-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.voting-question-input {
+  padding: 8px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #1a1a2e;
+  color: #fff;
+  font-size: 13px;
+}
+
+.voting-options-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.add-option-btn {
+  padding: 6px 12px;
+  border: 1px dashed #444;
+  border-radius: 4px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.voting-option-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: #1a1a2e;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.remove-option-btn {
+  border: none;
+  background: transparent;
+  color: #f87171;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.start-vote-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background: #60a5fa;
+  color: #fff;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.start-vote-btn:disabled {
+  background: #333;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.voting-active {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.voting-question-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.voting-ballots {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vote-btn {
+  padding: 8px 16px;
+  border: 1px solid #4ade80;
+  border-radius: 4px;
+  background: transparent;
+  color: #4ade80;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.vote-btn:hover {
+  background: #4ade80;
+  color: #000;
+}
+
+.voting-results {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+}
+
+.voting-results h5 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #888;
+}
+
+.vote-result-item {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  align-items: center;
+}
+
+.vote-option {
+  color: #e2e8f0;
+  font-weight: bold;
+}
+
+.vote-count {
+  color: #4ade80;
+}
+
+.vote-voters {
+  color: #888;
+  font-size: 11px;
+  margin-left: auto;
+}
+
+.close-vote-btn {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background: #5a2d2d;
+  color: #f87171;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+@media (prefers-color-scheme: light) {
+  .parallel-section, .voting-section { background: #fafafa; }
+  .voting-question-input { background: #fff; border-color: #ddd; color: #333; }
+  .voting-option-item { background: #f5f5f5; }
+  .parallel-result-item.success { background: #dcfce7; }
+  .parallel-result-item.error { background: #fee; }
+  .vote-btn { border-color: #16a34a; color: #16a34a; }
+  .vote-btn:hover { background: #16a34a; color: #fff; }
+}
