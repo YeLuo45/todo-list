@@ -256,3 +256,62 @@
   .history-item { border-bottom-color: #eee; }
   .clear-history-btn { background: #fee; color: #c00; }
 }
+
+/* Tools tab */
+.agent-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tools-hint {
+  color: #888;
+  font-size: 12px;
+  margin: 0 0 4px 0;
+}
+
+.agent-tools-section {
+  background: #0f0f1a;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.agent-tools-header {
+  font-weight: bold;
+  font-size: 12px;
+  color: #60a5fa;
+  margin-bottom: 6px;
+}
+
+.agent-tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tool-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  background: #1a1a2e;
+  border-radius: 4px;
+}
+
+.tool-badge-name {
+  font-size: 12px;
+  color: #4ade80;
+  font-weight: bold;
+}
+
+.tool-badge-desc {
+  font-size: 11px;
+  color: #888;
+}
+
+@media (prefers-color-scheme: light) {
+  .agent-tools-section { background: #fff; }
+  .tool-badge { background: #f5f5f5; }
+  .agent-tools-header { color: #3b82f6; }
+  .tool-badge-name { color: #16a34a; }
+}

@@ -4,6 +4,7 @@ import { CreatorAgent } from '../agents/creatorAgent.js';
 import { ReviewAgent } from '../agents/reviewAgent.js';
 import { ReminderAgent } from '../agents/reminderAgent.js';
 import { agentHistory } from '../agents/agentHistory.js';
+import { toolRegistry } from '../agents/toolRegistry.js';
 
 const creatorAgent = new CreatorAgent();
 const reviewAgent = new ReviewAgent();
@@ -148,6 +149,12 @@ export default function AgentPanel({ onTaskCreate }) {
         >
           📜 历史
         </button>
+        <button
+          className={`agent-tab ${activeTab === 'tools' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tools')}
+        >
+          🛠️ 工具
+        </button>
       </div>
 
       {activeTab === 'chat' && (
@@ -226,6 +233,33 @@ export default function AgentPanel({ onTaskCreate }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'tools' && (
+        <div className="agent-tools">
+          <p className="tools-hint">已注册工具（通过 toolRegistry 分配）：</p>
+          {AGENTS.map(({ id }) => {
+            const agentTools = creatorAgent.getTools ? creatorAgent.getTools().filter(t => true) : [];
+            const tools = toolRegistry.getTools(id);
+            return (
+              <div key={id} className="agent-tools-section">
+                <div className="agent-tools-header">{id}</div>
+                {tools.length === 0 ? (
+                  <p className="empty-hint">暂无分配工具</p>
+                ) : (
+                  <div className="agent-tools-list">
+                    {tools.map(tool => (
+                      <div key={tool.id} className="tool-badge">
+                        <span className="tool-badge-name">{tool.name}</span>
+                        <span className="tool-badge-desc">{tool.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

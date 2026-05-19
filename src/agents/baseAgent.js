@@ -1,4 +1,6 @@
 // Base Agent class - all agents inherit from this
+import { toolRegistry } from './toolRegistry.js';
+
 const AGENT_STATE_KEY = 'hermes_agent_state_';
 
 export class BaseAgent {
@@ -23,6 +25,15 @@ export class BaseAgent {
 
   setTools(tools) {
     this.tools = tools;
+  }
+
+  // Tool assignment from registry
+  registerTools(toolIds = []) {
+    toolIds.forEach(id => toolRegistry.assignToolToAgent(id, this.name));
+  }
+
+  getTools() {
+    return toolRegistry.getTools(this.name);
   }
 
   // State persistence - ruflo state machine pattern
