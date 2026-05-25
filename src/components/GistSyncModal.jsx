@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  getGistConfig, saveGistConfig, createGist, pushGist,
+  getGistConfig, saveGistConfig, createGist, pushGist, fetchGist,
   createBackupGist, fetchBackupList, fetchBackupContent,
   getBackupHistory, saveBackupHistory, getLastBackupTime, setLastBackupTime,
 } from '../utils/gistSync';
@@ -66,6 +66,39 @@ export default function GistSyncModal({ onClose, onSync, tasks }) {
       setSuccess(`新 Gist 创建成功！ID: ${result.id}`);
     } catch (e) {
       setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePullFromRemote = async () => {
+    if (!config.pat || !config.gistId) { setError('请填写 PAT 和 Gist ID'); return; }
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const remoteData = await fetchGist(config.gistId, config.pat);
+      // remoteData is v2 format: { tasks, projects, tagColors, tagGroups, hermesTagColors, version, timestamp }
+      // Persist each part to localStorage
+      if (remoteData.tasks) {
+        localStorage.setItem('hermes_todos_v2', JSON.stringify(remoteData.tasks));
+      }
+      if (remoteData.projects) {
+        localStorage.setItem('hermes_projects_v2', JSON.stringify(remoteData.projects));
+      }
+      if (remoteData.tagColors) {
+        localStorage.setItem('hermes_tag_colors_v2', JSON.stringify(remoteData.tagColors));
+      }
+      if (remoteData.tagGroups) {
+        localStorage.setItem('hermes_tag_groups_v2', JSON.stringify(remoteData.tagGroups));
+      }
+      if (remoteData.hermesTagColors) {
+        localStorage.setItem('hermes_hermes_tag_colors', JSON.stringify(remoteData.hermesTagColors));
+      }
+      setSuccess(`✅ 已从远程拉取！任务: ${remoteData.tasks?.length || 0}, 项目: ${remoteData.projects?.length || 0}。页面将刷新...`);
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (e) {
+      setError(`拉取失败: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -191,6 +224,7 @@ export default function GistSyncModal({ onClose, onSync, tasks }) {
               <button className="btn-gist" onClick={handleSave} disabled={loading}>💾 保存配置</button>
               <button className="btn-gist secondary" onClick={handleCreateGist} disabled={loading}>✨ 创建新 Gist</button>
               <button className="btn-gist secondary" onClick={handleTestSync} disabled={loading}>🔄 测试同步</button>
+              <button className="btn-gist secondary" onClick={handlePullFromRemote} disabled={loading}>⬇️ 从远程同步到本地</button>
             </div>
           </>
         )}

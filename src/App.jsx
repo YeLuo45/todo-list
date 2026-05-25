@@ -300,7 +300,7 @@ function AppContent() {
       <header className="app-header">
         <div className="header-row">
           <div>
-            <h1>📝 Hermes TodoList</h1>
+            <h1>📝 My Todolist</h1>
             <p className="subtitle">Manage your tasks efficiently</p>
           </div>
           <div className="header-actions">
@@ -420,7 +420,7 @@ function AppContent() {
       />
 
       <footer className="app-footer">
-        <p>Hermes TodoList • Built with React + Vite</p>
+        <p>My Todolist • Built with React + Vite</p>
       </footer>
 
       {showForm && (
