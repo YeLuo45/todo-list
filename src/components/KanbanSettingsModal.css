@@ -7,6 +7,9 @@
   justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(2px);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .settings-modal {
@@ -15,9 +18,9 @@
   border-radius: 12px;
   padding: 24px;
   width: 460px;
-  max-width: 90vw;
+  max-width: 85vw;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-  max-height: 80vh;
+  max-height: 90vh;
   overflow-y: auto;
 }
 

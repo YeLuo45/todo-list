@@ -22,8 +22,8 @@ import { useTheme } from './hooks/useTheme';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import ConflictModal from './components/ConflictModal';
 import InsightsPanel from './components/InsightsPanel';
-import AgentPanel from './components/AgentPanel';
-import CronTaskPanel from './components/CronTaskPanel';
+import AgentPage from './pages/AgentPage';
+import CronPage from './pages/CronPage';
 import ProjectTagManagementModal from './components/ProjectTagManagementModal';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
 import { getGistConfig, createBackupGist } from './utils/gistSync';
@@ -47,6 +47,7 @@ function AppContent() {
   const [showAgentPanel, setShowAgentPanel] = useState(false);
   const [showCronPanel, setShowCronPanel] = useState(false);
   const [showProjectTagMgmt, setShowProjectTagMgmt] = useState(false);
+  const [currentPage, setCurrentPage] = useState('main'); // 'main' | 'agent' | 'cron'
   const filterBarRef = useRef();
   const recognitionRef = useRef(null);
 
@@ -318,10 +319,10 @@ function AppContent() {
               isGistOnline={gistOnline}
               onClick={() => setShowSettings(true)}
             />
-            <button className="theme-toggle" onClick={() => setShowAgentPanel(v => !v)} title="Agent Panel">
+            <button className="theme-toggle" onClick={() => setCurrentPage('agent')} title="Agent Panel">
               🤖 Agent
             </button>
-            <button className="theme-toggle" onClick={() => setShowCronPanel(v => !v)} title="Cron Panel">
+            <button className="theme-toggle" onClick={() => setCurrentPage('cron')} title="Cron Panel">
               ⏰ Cron
             </button>
           </div>
@@ -506,34 +507,9 @@ function AppContent() {
         onToggle={() => setInsightsCollapsed(c => !c)}
       />
 
-      {showAgentPanel && (
-        <AgentPanel
-          onTaskCreate={(task) => {
-            // Add the task to the task list
-            setTasks(prev => [task, ...prev]);
-            window.dispatchEvent(new CustomEvent('task-created', { detail: task }));
-          }}
-        />
-      )}
-
-      {showCronPanel && (
-        <CronTaskPanel
-          tasks={allTasks}
-          onTaskUpdate={(task) => {
-            setTasks(prev => {
-              const idx = prev.findIndex(t => t.id === task.id);
-              if (idx >= 0) {
-                const updated = [...prev];
-                updated[idx] = task;
-                return updated;
-              }
-              return prev;
-            });
-          }}
-        />
-      )}
-
-      {showProjectTagMgmt && (
+      {currentPage === 'agent' && <AgentPage />}
+      {currentPage === 'cron' && <CronPage />}
+      {currentPage === 'main' && showProjectTagMgmt && (
         <ProjectTagManagementModal onClose={() => setShowProjectTagMgmt(false)} />
       )}
 

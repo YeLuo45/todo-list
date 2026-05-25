@@ -1,5 +1,7 @@
 .gcal-sync-modal {
-  max-width: 520px;
+  max-width: 85vw;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .gcal-section {

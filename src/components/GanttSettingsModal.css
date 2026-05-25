@@ -1,5 +1,8 @@
 .gantt-settings-modal {
   width: 420px;
+  max-width: 85vw;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .milestone-colors-list {

@@ -4,7 +4,9 @@
   border-radius: 12px;
   padding: 20px;
   width: 440px;
-  max-width: 90vw;
+  max-width: 85vw;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .batch-rename-modal h3 {

@@ -10,13 +10,16 @@
   justify-content: center;
   z-index: 1000;
   padding: 16px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .task-detail-modal {
   background: var(--bg-card);
   border-radius: 12px;
   width: 100%;
-  max-width: 600px;
+  max-width: 85vw;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
