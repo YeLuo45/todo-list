@@ -399,10 +399,6 @@ function AppContent() {
         )}
         {view === 'list' ? (
           <>
-            <ProjectSidebar
-              isMobileOpen={sidebarMobileOpen}
-              onMobileClose={() => setSidebarMobileOpen(false)}
-            />
             <div className="task-list-container">
               <TaskList onEdit={handleEditTask} onNew={handleNewTask} />
             </div>

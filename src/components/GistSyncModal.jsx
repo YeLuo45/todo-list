@@ -59,7 +59,7 @@ export default function GistSyncModal({ onClose, onSync, tasks }) {
     setLoading(true);
     setError('');
     try {
-      const result = await createGist(config.pat, []);
+      const result = await createGist(config.pat, { tasks, projects, tagColors, tagGroups, hermesTagColors });
       const newConfig = { ...config, gistId: result.id };
       saveGistConfig(newConfig);
       setConfig(newConfig);
@@ -109,7 +109,7 @@ export default function GistSyncModal({ onClose, onSync, tasks }) {
     setLoading(true);
     setError('');
     try {
-      await pushGist(config.gistId, config.pat, []);
+      await pushGist(config.gistId, config.pat, { tasks, projects, tagColors, tagGroups, hermesTagColors });
       setSuccess('同步测试成功！');
     } catch (e) {
       setError(e.message);
