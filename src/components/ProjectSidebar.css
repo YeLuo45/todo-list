@@ -28,6 +28,12 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sidebar-header:hover {
+  background: var(--bg-hover);
 }
 
 .sidebar-header-btns {

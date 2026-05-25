@@ -4,9 +4,15 @@ import {
   createBackupGist, fetchBackupList, fetchBackupContent,
   getBackupHistory, saveBackupHistory, getLastBackupTime, setLastBackupTime,
 } from '../utils/gistSync';
+import { useAppStore } from '../store/useAppStore';
 import './GistSyncModal.css';
 
 export default function GistSyncModal({ onClose, onSync, tasks }) {
+  const projects = useAppStore((s) => s.projects);
+  const tagColors = useAppStore((s) => s.tagColors);
+  const hermesTagColors = useAppStore((s) => s.hermesTagColors);
+  const tagGroups = useAppStore((s) => s.tagGroups);
+  
   const [tab, setTab] = useState('sync'); // 'sync' | 'backup'
   const [config, setConfig] = useState(() => getGistConfig() || { gistId: '', pat: '' });
   const [loading, setLoading] = useState(false);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTaskContext } from '../context/TaskContext';
+import { useAppStore } from '../store/useAppStore';
 import { getAPIToken } from '../utils/aiSubtask';
 import { improveDescription } from '../utils/aiDescription优化';
 import { getUsers, getUserById } from '../utils/comment';
@@ -7,7 +8,8 @@ import { addActivity, ACTIVITY_ACTIONS } from '../utils/activityLog';
 import './TaskForm.css';
 
 export default function TaskForm({ editingTask, onClose }) {
-  const { createTask, updateTask, allTasks, isTaskBlocked, wouldCreateCycle } = useTaskContext();
+  const { createTask, updateTask, allTasks, isTaskBlocked, wouldCreateCycle, getAllTags } = useTaskContext();
+  const projects = useAppStore((s) => s.projects);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
@@ -33,6 +35,10 @@ export default function TaskForm({ editingTask, onClose }) {
   const [showDescDiff, setShowDescDiff] = useState(false);
   const [assignee, setAssignee] = useState('');
   const [users, setUsers] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [filteredTagSuggestions, setFilteredTagSuggestions] = useState([]);
+  const [projectId, setProjectId] = useState('');
 
   useEffect(() => {
     setUsers(getUsers());
@@ -56,6 +62,7 @@ export default function TaskForm({ editingTask, onClose }) {
       setRemindBefore(editingTask.remindBefore || '');
       setRemindAt(editingTask.remindAt || '');
       setAssignee(editingTask.assignee || '');
+      setProjectId(editingTask.projectId || '');
     }
   }, [editingTask]);
 
@@ -91,6 +98,64 @@ export default function TaskForm({ editingTask, onClose }) {
 
   const handleRemoveDep = (depId) => {
     setDependsOn((prev) => prev.filter((id) => id !== depId));
+  };
+
+  // Tag autocomplete handlers
+  const allExistingTags = getAllTags();
+
+  const handleTagInputChange = (e) => {
+    const value = e.target.value;
+    // Get the text after the last comma
+    const lastCommaIndex = value.lastIndexOf(',');
+    const currentInput = lastCommaIndex >= 0 ? value.slice(lastCommaIndex + 1).trim() : value.trim();
+    setTagInput(currentInput);
+
+    if (currentInput.length > 0) {
+      const filtered = allExistingTags.filter(tag =>
+        tag.toLowerCase().includes(currentInput.toLowerCase())
+      );
+      setFilteredTagSuggestions(filtered);
+      setShowTagSuggestions(filtered.length > 0);
+    } else {
+      setShowTagSuggestions(false);
+      setFilteredTagSuggestions([]);
+    }
+  };
+
+  const handleTagSuggestionClick = (tag) => {
+    const lastCommaIndex = tags.lastIndexOf(',');
+    let newTags;
+    if (lastCommaIndex >= 0) {
+      newTags = tags.slice(0, lastCommaIndex + 1) + ' ' + tag + ',';
+    } else {
+      newTags = tag + ',';
+    }
+    setTags(newTags);
+    setTagInput('');
+    setShowTagSuggestions(false);
+    setFilteredTagSuggestions([]);
+  };
+
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (filteredTagSuggestions.length > 0) {
+        handleTagSuggestionClick(filteredTagSuggestions[0]);
+      } else if (tagInput.trim()) {
+        // Allow custom tag entry - add comma
+        const lastCommaIndex = tags.lastIndexOf(',');
+        if (lastCommaIndex >= 0) {
+          setTags(tags.slice(0, lastCommaIndex + 1) + ' ' + tagInput.trim() + ',');
+        } else {
+          setTags(tagInput.trim() + ',');
+        }
+        setTagInput('');
+        setShowTagSuggestions(false);
+        setFilteredTagSuggestions([]);
+      }
+    } else if (e.key === 'Escape') {
+      setShowTagSuggestions(false);
+    }
   };
 
   const handleAIImproveDescription = async () => {
@@ -167,6 +232,7 @@ export default function TaskForm({ editingTask, onClose }) {
       importance,
       urgency,
       assignee: assignee || null,
+      projectId: projectId || null,
     };
     
     let taskId;
@@ -244,6 +310,17 @@ export default function TaskForm({ editingTask, onClose }) {
               ))}
             </select>
           </div>
+          <div className="form-group">
+            <label>项目</label>
+            <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+              <option value="">无项目</option>
+              {projects.map(proj => (
+                <option key={proj.id} value={proj.id}>
+                  {proj.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="form-row score-row">
@@ -293,10 +370,27 @@ export default function TaskForm({ editingTask, onClose }) {
           </div>
         </div>
 
-        <div className="form-group">
+        <div className="form-group tag-input-group">
           <label>标签</label>
-          <input type="text" value={tags} onChange={(e) => setTags(e.target.value)}
-            placeholder="工作, 生活, 紧急 (逗号分隔)" />
+          <div className="tag-autocomplete-wrapper">
+            <input
+              type="text"
+              value={tags}
+              onChange={(e) => { setTags(e.target.value); handleTagInputChange(e); }}
+              onKeyDown={handleTagKeyDown}
+              placeholder="输入标签名称，逗号分隔，支持自动补全"
+            />
+            {showTagSuggestions && filteredTagSuggestions.length > 0 && (
+              <ul className="tag-suggestions-dropdown">
+                {filteredTagSuggestions.map((tag) => (
+                  <li key={tag} onClick={() => handleTagSuggestionClick(tag)}>
+                    {tag}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <small className="tag-hint">输入已有标签名称时会显示建议列表</small>
         </div>
 
         <div className="form-row">

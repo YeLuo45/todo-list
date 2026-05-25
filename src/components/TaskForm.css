@@ -441,3 +441,57 @@ label .btn-ai-improve-form:disabled {
 .desc-diff-modal-content .desc-diff-actions .btn-cancel:hover {
   background: var(--bg-hover);
 }
+
+/* Tag Autocomplete */
+.tag-input-group {
+  position: relative;
+}
+
+.tag-autocomplete-wrapper {
+  position: relative;
+}
+
+.tag-suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-top: 4px;
+  padding: 0;
+  list-style: none;
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tag-suggestions-dropdown li {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+
+.tag-suggestions-dropdown li:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.tag-suggestions-dropdown li:first-child {
+  border-radius: 6px 6px 0 0;
+}
+
+.tag-suggestions-dropdown li:last-child {
+  border-radius: 0 0 6px 6px;
+}
+
+.tag-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}

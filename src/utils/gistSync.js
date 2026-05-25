@@ -43,26 +43,48 @@ export async function fetchGist(gistId, pat) {
   return JSON.parse(file.content);
 }
 
-export async function pushGist(gistId, pat, tasks) {
+// Push full data (tasks + projects + tags) to Gist
+export async function pushGist(gistId, pat, backupData) {
+  const { tasks = [], projects = [], tagColors = {}, tagGroups = [], hermesTagColors = {} } = backupData;
+  const content = {
+    version: 2,
+    timestamp: new Date().toISOString(),
+    tasks,
+    projects,
+    tagColors,
+    tagGroups,
+    hermesTagColors,
+  };
   const res = await fetch(`https://api.github.com/gists/${gistId}`, {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${pat}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      files: { 'tasks.json': { content: JSON.stringify(tasks, null, 2) } },
+      files: { 'tasks.json': { content: JSON.stringify(content, null, 2) } },
     }),
   });
   if (!res.ok) throw new Error(`Gist push failed: ${res.status}`);
   return res.json();
 }
 
-export async function createGist(pat, tasks) {
+// Create new Gist with full data
+export async function createGist(pat, backupData) {
+  const { tasks = [], projects = [], tagColors = {}, tagGroups = [], hermesTagColors = {} } = backupData;
+  const content = {
+    version: 2,
+    timestamp: new Date().toISOString(),
+    tasks,
+    projects,
+    tagColors,
+    tagGroups,
+    hermesTagColors,
+  };
   const res = await fetch('https://api.github.com/gists', {
     method: 'POST',
     headers: { Authorization: `Bearer ${pat}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
     body: JSON.stringify({
       description: 'Hermes TodoList',
       public: false,
-      files: { 'tasks.json': { content: JSON.stringify(tasks, null, 2) } },
+      files: { 'tasks.json': { content: JSON.stringify(content, null, 2) } },
     }),
   });
   if (!res.ok) throw new Error(`Gist create failed: ${res.status}`);
@@ -70,16 +92,30 @@ export async function createGist(pat, tasks) {
 }
 
 // 创建备份 Gist（独立gist，每份备份独立）
-export async function createBackupGist(pat, tasks) {
+// backupData structure: { tasks, projects, tagColors, tagGroups, hermesTagColors }
+export async function createBackupGist(pat, backupData = {}) {
+  const { tasks = [], projects = [], tagColors = {}, tagGroups = [], hermesTagColors = {} } = backupData;
   const now = new Date();
   const label = now.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  
+  // Create backup content including projects and tags
+  const content = {
+    version: 2,
+    timestamp: now.toISOString(),
+    tasks,
+    projects,
+    tagColors,
+    tagGroups,
+    hermesTagColors,
+  };
+  
   const res = await fetch('https://api.github.com/gists', {
     method: 'POST',
     headers: { Authorization: `Bearer ${pat}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
     body: JSON.stringify({
       description: `Hermes TodoList Backup ${label}`,
       public: false,
-      files: { 'tasks.json': { content: JSON.stringify(tasks, null, 2) } },
+      files: { 'tasks.json': { content: JSON.stringify(content, null, 2) } },
     }),
   });
   if (!res.ok) throw new Error(`Backup Gist create failed: ${res.status}`);
@@ -89,6 +125,7 @@ export async function createBackupGist(pat, tasks) {
     description: data.description,
     timestamp: now.toISOString(),
     taskCount: tasks.length,
+    projectCount: projects.length,
   };
 }
 
@@ -111,7 +148,7 @@ export async function fetchBackupList(pat, limit = 7) {
   return backups;
 }
 
-// 获取某个备份的内容
+// 获取某个备份的内容 (handles both v1 tasks-only and v2 full backup)
 export async function fetchBackupContent(gistId, pat) {
   const res = await fetch(`https://api.github.com/gists/${gistId}`, {
     headers: { Authorization: `Bearer ${pat}`, Accept: 'application/vnd.github+json' },
@@ -120,7 +157,15 @@ export async function fetchBackupContent(gistId, pat) {
   const data = await res.json();
   const file = data.files['tasks.json'];
   if (!file) throw new Error('tasks.json not found in backup Gist');
-  return JSON.parse(file.content);
+  const content = JSON.parse(file.content);
+  
+  // Handle both v1 (array) and v2 (object) formats
+  if (Array.isArray(content)) {
+    // v1 format: just tasks array
+    return { tasks: content, version: 1 };
+  }
+  // v2 format: object with tasks, projects, tags, etc.
+  return { ...content, version: 2 };
 }
 
 export function mergeTasks(local, remote) {

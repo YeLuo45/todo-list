@@ -45,11 +45,12 @@ export default function ProjectSidebar({ isMobileOpen, onMobileClose }) {
       )}
       
       <div className={`project-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
-        <div className="sidebar-header">
+        <div className="sidebar-header" onClick={() => setCollapsed(c => !c)}>
           <span>📁 项目</span>
           <div className="sidebar-header-btns">
-            <button className="sidebar-manage-btn" onClick={() => setShowManage(true)} title="管理项目">⚙️</button>
-            <button className="sidebar-toggle" onClick={() => {
+            <button className="sidebar-manage-btn" onClick={(e) => { e.stopPropagation(); setShowManage(true); }} title="管理项目">⚙️</button>
+            <button className="sidebar-toggle" onClick={(e) => {
+              e.stopPropagation();
               if (onMobileClose) onMobileClose();
               else setCollapsed(true);
             }} title="收起">◀</button>
