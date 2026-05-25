@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { getTasks, setTasks, initStorage, getTasksFromOPFS, getStorageMode } from '../utils/storage';
+import * as storage from '../utils/storage';
+import { getTasks, setTasks as setStorageTasks, initStorage, getTasksFromOPFS, getStorageMode } from '../utils/storage';
 
 const TaskContext = createContext(null);
 
@@ -178,6 +179,7 @@ export function TaskProvider({ children }) {
   useEffect(() => {
     if (!isLoading) {
       setTasks(tasks);
+      storage.setItem('hermes_todos_v2', tasks);
     }
   }, [tasks, isLoading]);
 
