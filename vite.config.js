@@ -4,7 +4,7 @@ import { resolve } from 'path';
 
 export default defineConfig(({ command, mode }) => ({
   plugins: [react()],
-  base: command === 'serve' ? '/' : '/todo-list/',
+  base: '/todo-list/',
   build: {
     outDir: 'dist',
     sourcemap: false,
