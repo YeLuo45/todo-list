@@ -130,7 +130,7 @@ const FilterBar = forwardRef(function FilterBar({ resultCount, totalCount }, ref
     const groups = {};
     const ungrouped = [];
     allTags.forEach((tag) => {
-      const group = tagGroups.find((g) => g.tags.includes(tag));
+      const group = tagGroups.find((g) => (g.tags || []).includes(tag));
       if (group) {
         if (!groups[group.id]) groups[group.id] = { ...group, tags: [] };
         groups[group.id].tags.push(tag);
