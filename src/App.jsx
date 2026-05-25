@@ -24,6 +24,7 @@ import ConflictModal from './components/ConflictModal';
 import InsightsPanel from './components/InsightsPanel';
 import AgentPanel from './components/AgentPanel';
 import CronTaskPanel from './components/CronTaskPanel';
+import ProjectTagManagementModal from './components/ProjectTagManagementModal';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
 import { getGistConfig, createBackupGist } from './utils/gistSync';
 import { useAppStore } from './store/useAppStore';
@@ -45,6 +46,7 @@ function AppContent() {
   const [isRecording, setIsRecording] = useState(false);
   const [showAgentPanel, setShowAgentPanel] = useState(false);
   const [showCronPanel, setShowCronPanel] = useState(false);
+  const [showProjectTagMgmt, setShowProjectTagMgmt] = useState(false);
   const filterBarRef = useRef();
   const recognitionRef = useRef(null);
 
@@ -370,6 +372,9 @@ function AppContent() {
             <button className="toolbar-btn" onClick={handleNewTask}>
               ➕ 新建 (Ctrl+N)
             </button>
+            <button className="toolbar-btn" onClick={() => setShowProjectTagMgmt(true)}>
+              🗂️ 管理项目/标签
+            </button>
             {githubToken && (
               <button className="toolbar-btn" onClick={sync}>
                 🔄 同步
@@ -526,6 +531,10 @@ function AppContent() {
             });
           }}
         />
+      )}
+
+      {showProjectTagMgmt && (
+        <ProjectTagManagementModal onClose={() => setShowProjectTagMgmt(false)} />
       )}
 
       {toasts.map((toast) => (

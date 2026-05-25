@@ -1,0 +1,242 @@
+/* ProjectTagManagementModal styles */
+.ptm-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.ptm-modal h3 {
+  margin-bottom: 16px;
+  font-size: 18px;
+  color: #1e293b;
+}
+
+/* Tabs */
+.ptm-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.ptm-tab {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.ptm-tab:hover {
+  color: #334155;
+}
+
+.ptm-tab.active {
+  background: white;
+  color: #1e293b;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Panel */
+.ptm-panel {
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.ptm-add-form,
+.ptm-edit-form {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.ptm-add-form input,
+.ptm-edit-form input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 8px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.ptm-add-form input:focus,
+.ptm-edit-form input:focus {
+  border-color: #6366f1;
+}
+
+/* Color picker */
+.color-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.color-swatch.selected {
+  border-color: #1e293b;
+  transform: scale(1.15);
+}
+
+/* Add button */
+.btn-add-root {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 12px;
+  transition: all 0.2s;
+}
+
+.btn-add-root:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+/* List */
+.ptm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ptm-empty {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+/* Item row */
+.ptm-item-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  gap: 8px;
+}
+
+.ptm-item-name {
+  flex: 1;
+  font-size: 14px;
+  color: #334155;
+}
+
+.project-dot,
+.tag-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ptm-item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.ptm-item-actions button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.ptm-item-actions button:hover {
+  background: #e2e8f0;
+}
+
+/* Form actions */
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-add {
+  padding: 6px 14px;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-add:hover {
+  background: #4f46e5;
+}
+
+.btn-cancel {
+  padding: 6px 14px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+/* Footer */
+.ptm-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-close {
+  padding: 8px 20px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-close:hover {
+  background: #e2e8f0;
+}
