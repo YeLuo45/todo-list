@@ -191,6 +191,7 @@ function KanbanColumn({
   const [dropIndex, setDropIndex] = useState(-1);
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const [showCopyMenu, setShowCopyMenu] = useState(false);
+  const [showAllLanes, setShowAllLanes] = useState(false);
 
   const sortedTasks = [...tasks].sort((a, b) => (a.order || 0) - (b.order || 0));
   const overWip = wipLimit && tasks.length >= wipLimit;
@@ -339,17 +340,28 @@ function KanbanColumn({
             <div className="kanban-wip-warning">⚠️ 已达 WIP 上限</div>
           )}
           {groups ? (
-            groups.map(({ key, groupTasks, wipLimit, project, laneColor }) => (
-              <SwimlaneGroup
-                key={key} label={key} tasks={groupTasks} onEdit={onEdit}
-                draggingId={draggingId} setDraggingId={setDraggingId}
-                showDuration={showDuration} swimlaneWipLimit={wipLimit}
-                project={project} laneColor={laneColor}
-                selectedIds={selectedIds}
-                onSelect={onSelectTask}
-                selectMode={selectMode}
-              />
-            ))
+            <>
+              {(showAllLanes ? groups : groups.slice(0, 6)).map(({ key, groupTasks, wipLimit, project, laneColor }) => (
+                <SwimlaneGroup
+                  key={key} label={key} tasks={groupTasks} onEdit={onEdit}
+                  draggingId={draggingId} setDraggingId={setDraggingId}
+                  showDuration={showDuration} swimlaneWipLimit={wipLimit}
+                  project={project} laneColor={laneColor}
+                  selectedIds={selectedIds}
+                  onSelect={onSelectTask}
+                  selectMode={selectMode}
+                />
+              ))}
+              {groups.length > 6 && (
+                <button
+                  className="kanban-lane-toggle"
+                  onClick={() => setShowAllLanes(!showAllLanes)}
+                  style={{ display: 'block', width: '100%', padding: '8px', marginTop: 8, background: '#f0f0f0', border: 'none', cursor: 'pointer', textAlign: 'center' }}
+                >
+                  {showAllLanes ? '收起' : `查看更多 (${groups.length - 6})`}
+                </button>
+              )}
+            </>
           ) : (
             sortedTasks.map((task, i) => (
               <div key={task.id}>
