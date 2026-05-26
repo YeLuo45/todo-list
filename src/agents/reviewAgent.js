@@ -60,6 +60,6 @@ export class ReviewAgent extends BaseAgent {
   
   getExistingTasks() {
     // Get tasks from TaskContext - will be injected via props
-    return window.__taskStore ? window.__taskStore.getState().tasks : [];
+    return window.__appStore ? window.__appStore.getState().tasks || [] : [];
   }
 }

@@ -5,9 +5,14 @@ import { autoChecker } from '../subagent/autoChecker.js';
 import { gistSyncer } from '../subagent/gistSyncer.js';
 import { notebookExecutor } from '../subagent/notebookExecutor.js';
 import { scriptTemplates, getTemplateNames, getTemplate } from '../subagent/scriptTemplates.js';
+import { useAppStore } from '../store/useAppStore';
 import './CronTaskPanel.css';
 
 export default function CronTaskPanel({ tasks, onTaskUpdate }) {
+  const projects = useAppStore((s) => s.projects);
+  const tagColors = useAppStore((s) => s.tagColors);
+  const tagGroups = useAppStore((s) => s.tagGroups);
+  const hermesTagColors = useAppStore((s) => s.hermesTagColors);
   const [scheduledTasks, setScheduledTasks] = useState([]);
   const [activeAgents, setActiveAgents] = useState([]);
   const [newCron, setNewCron] = useState('0 9 * * *'); // default: daily 9am
@@ -86,7 +91,15 @@ export default function CronTaskPanel({ tasks, onTaskUpdate }) {
   
   const handleSyncNow = async () => {
     setSyncing(true);
-    const result = await gistSyncer.sync();
+    // Pass full backup data (tasks + projects + tags) to gistSyncer
+    const fullData = {
+      tasks,
+      projects: projects || [],
+      tagColors: tagColors || {},
+      tagGroups: tagGroups || [],
+      hermesTagColors: hermesTagColors || {},
+    };
+    const result = await gistSyncer.sync(fullData);
     gistSyncer.addSyncHistory({
       timestamp: new Date().toISOString(),
       success: result.success,

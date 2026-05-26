@@ -31,6 +31,9 @@ import { useAppStore } from './store/useAppStore';
 import { migrateToOPFS, getStorageMode } from './utils/storage';
 import './App.css';
 
+// Expose useAppStore globally for gistSyncer (subagent modules can't use React hooks directly)
+window.__appStore = useAppStore;
+
 function AppContent() {
   const { tasks: filteredTasks, allTasks, markAsRead, setTasks } = useTaskContext();
   const [toasts, setToasts] = useState([]);

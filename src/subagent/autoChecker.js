@@ -19,7 +19,8 @@ class AutoChecker {
   }
   
   checkTasks() {
-    const tasks = window.__taskStore ? window.__taskStore.getState().tasks : [];
+    const store = window.__appStore ? window.__appStore.getState() : {};
+    const tasks = store.tasks || [];
     const now = new Date();
     
     tasks.forEach(task => {
@@ -50,19 +51,18 @@ class AutoChecker {
   }
   
   escalatePriority(taskId) {
-    const store = window.__taskStore;
+    const store = window.__appStore ? window.__appStore.getState() : null;
     if (!store) return;
-    const tasks = store.getState().tasks;
+    const tasks = store.tasks || [];
     const task = tasks.find(t => t.id === taskId);
     if (task && task.priority !== 'high') {
       // Update priority to high
-      store.setState({ 
+      window.__appStore.setState({
         tasks: tasks.map(t => t.id === taskId ? { ...t, priority: 'high', updatedAt: new Date().toISOString() } : t)
       });
-      metacognition.sendReminderNotification({ ...task, title: `🔺 优先级提升: ${task.title}` });
     }
   }
-  
+
   detectDuplicatePatterns(tasks) {
     // Simple duplicate detection based on title similarity
     const titles = tasks.map(t => t.title.toLowerCase());
@@ -105,7 +105,8 @@ class AutoChecker {
   }
   
   sendWeeklyReport() {
-    const tasks = window.__taskStore ? window.__taskStore.getState().tasks : [];
+    const store = window.__appStore ? window.__appStore.getState() : {};
+    const tasks = store.tasks || [];
     const stats = metacognition.getStats(tasks);
     
     if (Notification.permission === 'granted') {

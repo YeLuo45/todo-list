@@ -45,7 +45,7 @@ export const parallelExecutor = {
         result = { success: true, task, action: 'created' };
       } else if (agentId === 'ReviewAgent') {
         // ReviewAgent needs existing tasks context
-        const existingTasks = window.__taskStore?.getState?.()?.tasks || [];
+        const existingTasks = window.__appStore?.getState?.()?.tasks || [];
         const reviewResult = agent.reviewTask({ task: taskData, source: 'parallel' });
         result = { success: true, review: reviewResult, action: 'reviewed' };
       } else if (agentId === 'ReminderAgent') {

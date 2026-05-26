@@ -20,14 +20,49 @@ export const gistSyncer = {
     localStorage.setItem(SYNC_INTERVAL_KEY, interval);
   },
   
-  async sync() {
-    const tasks = window.__taskStore ? window.__taskStore.getState().tasks : [];
-    const gistId = localStorage.getItem('gist_id');
-    const token = localStorage.getItem('github_token');
-    
+  // Read gist config from gist-sync-config (same format as GistSyncModal)
+  getConfig() {
+    try {
+      const cfg = JSON.parse(localStorage.getItem('gist-sync-config') || 'null');
+      return cfg || {};
+    } catch { return {}; }
+  },
+
+  async sync(tasksData) {
+    // tasksData: full backup data object from useAppStore, or array (legacy)
+    const cfg = this.getConfig();
+    const gistId = cfg.gistId;
+    const token = cfg.pat; // GistSyncModal stores PAT as 'pat'
+
     if (!gistId || !token) {
       console.warn('Gist sync not configured');
       return { success: false, error: 'not_configured' };
+    }
+
+    // Support both legacy array format and full backup object
+    let tasks = [];
+    let backupData = {};
+    if (Array.isArray(tasksData)) {
+      tasks = tasksData;
+    } else if (tasksData && typeof tasksData === 'object') {
+      // Full data object: useAppStore state
+      tasks = tasksData.tasks || [];
+      backupData = {
+        projects: tasksData.projects || [],
+        tagColors: tasksData.tagColors || {},
+        tagGroups: tasksData.tagGroups || [],
+        hermesTagColors: tasksData.hermesTagColors || {},
+      };
+    } else if (window.__appStore) {
+      // Fallback: read directly from window.__appStore
+      const store = window.__appStore.getState();
+      tasks = store.tasks || [];
+      backupData = {
+        projects: store.projects || [],
+        tagColors: store.tagColors || {},
+        tagGroups: store.tagGroups || [],
+        hermesTagColors: store.hermesTagColors || {},
+      };
     }
     
     try {
@@ -43,7 +78,16 @@ export const gistSyncer = {
       const gist = await response.json();
       const filename = Object.keys(gist.files)[0];
       
-      // Update gist
+      // Build full backup content (v2 format with tasks + projects + tags)
+      const content = {
+        version: 2,
+        timestamp: new Date().toISOString(),
+        tasks,
+        projects: backupData.projects || [],
+        tagColors: backupData.tagColors || {},
+        tagGroups: backupData.tagGroups || [],
+        hermesTagColors: backupData.hermesTagColors || {},
+      };
       const updateResponse = await fetch(`https://api.github.com/gists/${gistId}`, {
         method: 'PATCH',
         headers: {
@@ -53,7 +97,7 @@ export const gistSyncer = {
         body: JSON.stringify({
           files: {
             [filename]: {
-              content: JSON.stringify(tasks, null, 2)
+              content: JSON.stringify(content, null, 2)
             }
           }
         })
