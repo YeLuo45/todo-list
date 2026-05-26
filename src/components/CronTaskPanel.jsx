@@ -91,9 +91,17 @@ export default function CronTaskPanel({ tasks, onTaskUpdate }) {
   
   const handleSyncNow = async () => {
     setSyncing(true);
-    // Pass full backup data (tasks + projects + tags) to gistSyncer
+    // Read latest data directly from storage to avoid stale closure prop.
+    // useTaskContext.allTasks loads async; on first render it may be [].
+    // Use storage.getItem (sync read) to get the most recent persisted data.
+    let storedTasks = [];
+    try {
+      const raw = localStorage.getItem('hermes_todos_v2');
+      if (raw) storedTasks = JSON.parse(raw);
+    } catch (e) { /* ignore */ }
+
     const fullData = {
-      tasks,
+      tasks: storedTasks,
       projects: projects || [],
       tagColors: tagColors || {},
       tagGroups: tagGroups || [],

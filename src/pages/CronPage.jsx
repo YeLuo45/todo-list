@@ -1,26 +1,12 @@
 import { useState, useEffect } from 'react';
 import CronTaskPanel from '../components/CronTaskPanel';
 import { useTaskContext } from '../context/TaskContext';
-import { useAppStore } from '../store/useAppStore';
 
 export default function CronPage() {
   const { allTasks } = useTaskContext();
-  const setTasks = useAppStore((s) => s.setTasks);
 
   const handleBack = () => {
     window.history.back();
-  };
-
-  const handleTaskUpdate = (task) => {
-    setTasks(prev => {
-      const idx = prev.findIndex(t => t.id === task.id);
-      if (idx >= 0) {
-        const updated = [...prev];
-        updated[idx] = task;
-        return updated;
-      }
-      return prev;
-    });
   };
 
   return (
@@ -63,7 +49,6 @@ export default function CronPage() {
       <div style={{ flex: 1, overflow: 'auto' }}>
         <CronTaskPanel
           tasks={allTasks}
-          onTaskUpdate={handleTaskUpdate}
         />
       </div>
     </div>
