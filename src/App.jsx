@@ -333,96 +333,99 @@ function AppContent() {
         </div>
       </header>
 
-      <main className="app-main">
-        <div className="toolbar-row">
-          <div className="view-toggle">
-            <button
-              className={`view-btn ${view === 'dashboard' ? 'active' : ''}`}
-              onClick={() => setView('dashboard')}
-            >
-              🏠 首页
-            </button>
-            <button
-              className={`view-btn ${view === 'list' ? 'active' : ''}`}
-              onClick={() => setView('list')}
-            >
-              📋 列表
-            </button>
-            <button
-              className={`view-btn ${view === 'kanban' ? 'active' : ''}`}
-              onClick={() => setView('kanban')}
-            >
-              📊 看板
-            </button>
-            <button
-              className={`view-btn ${view === 'gantt' ? 'active' : ''}`}
-              onClick={() => setView('gantt')}
-            >
-              📈 甘特图
-            </button>
-          </div>
-          <div className="toolbar-actions">
-            <button className="toolbar-btn" onClick={() => setShowStats(true)}>
-              📊 统计 (3)
-            </button>
-            <button className="toolbar-btn" onClick={() => setShowImportExport(true)}>
-              📥 导入/导出
-            </button>
-            <button className="toolbar-btn" onClick={() => setShowGistSync(true)}>
-              ☁️ Gist同步
-            </button>
-            <button className="toolbar-btn" onClick={() => setShowGoogleCalendarSync(true)}>
-              📅 日历同步
-            </button>
-            <button className="toolbar-btn" onClick={handleNewTask}>
-              ➕ 新建 (Ctrl+N)
-            </button>
-            <button className="toolbar-btn" onClick={() => setShowProjectTagMgmt(true)}>
-              🗂️ 管理项目/标签
-            </button>
-            {githubToken && (
-              <button className="toolbar-btn" onClick={sync}>
-                🔄 同步
-              </button>
-            )}
-          </div>
-        </div>
-
-        {view === 'dashboard' && (
-          <Dashboard
-            onNewTask={handleNewTask}
-            onEditTask={handleEditTask}
-          />
-        )}
-        {view === 'list' && (
-          <FilterBar
-            ref={filterBarRef}
-            resultCount={filteredTasks.length}
-            totalCount={allTasks.length}
-          />
-        )}
-        {view === 'list' ? (
-          <>
-            <div className="task-list-container">
-              <TaskList onEdit={handleEditTask} onNew={handleNewTask} />
+      {currentPage === 'main' && (
+        <>
+          <main className="app-main">
+            <div className="toolbar-row">
+              <div className="view-toggle">
+                <button
+                  className={`view-btn ${view === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => setView('dashboard')}
+                >
+                  🏠 首页
+                </button>
+                <button
+                  className={`view-btn ${view === 'list' ? 'active' : ''}`}
+                  onClick={() => setView('list')}
+                >
+                  📋 列表
+                </button>
+                <button
+                  className={`view-btn ${view === 'kanban' ? 'active' : ''}`}
+                  onClick={() => setView('kanban')}
+                >
+                  📊 看板
+                </button>
+                <button
+                  className={`view-btn ${view === 'gantt' ? 'active' : ''}`}
+                  onClick={() => setView('gantt')}
+                >
+                  📈 甘特图
+                </button>
+              </div>
+              <div className="toolbar-actions">
+                <button className="toolbar-btn" onClick={() => setShowStats(true)}>
+                  📊 统计 (3)
+                </button>
+                <button className="toolbar-btn" onClick={() => setShowImportExport(true)}>
+                  📥 导入/导出
+                </button>
+                <button className="toolbar-btn" onClick={() => setShowGistSync(true)}>
+                  ☁️ Gist同步
+                </button>
+                <button className="toolbar-btn" onClick={() => setShowGoogleCalendarSync(true)}>
+                  📅 日历同步
+                </button>
+                <button className="toolbar-btn" onClick={handleNewTask}>
+                  ➕ 新建 (Ctrl+N)
+                </button>
+                <button className="toolbar-btn" onClick={() => setShowProjectTagMgmt(true)}>
+                  🗂️ 管理项目/标签
+                </button>
+                {githubToken && (
+                  <button className="toolbar-btn" onClick={sync}>
+                    🔄 同步
+                  </button>
+                )}
+              </div>
             </div>
-          </>
-        ) : view === 'kanban' ? (
-          <KanbanBoard onEditTask={handleEditTask} />
-        ) : view === 'gantt' ? (
-          <GanttChart onEditTask={handleEditTask} />
-        ) : null}
-      </main>
 
-      {/* Mobile Toolbar */}
-      <MobileToolbar
-        onQuickAdd={handleQuickAdd}
-        onVoiceInput={handleVoiceInput}
-      />
+            {view === 'dashboard' && (
+              <Dashboard
+                onNewTask={handleNewTask}
+                onEditTask={handleEditTask}
+              />
+            )}
+            {view === 'list' && (
+              <FilterBar
+                ref={filterBarRef}
+                resultCount={filteredTasks.length}
+                totalCount={allTasks.length}
+              />
+            )}
+            {view === 'list' ? (
+              <>
+                <div className="task-list-container">
+                  <TaskList onEdit={handleEditTask} onNew={handleNewTask} />
+                </div>
+              </>
+            ) : view === 'kanban' ? (
+              <KanbanBoard onEditTask={handleEditTask} />
+            ) : view === 'gantt' ? (
+              <GanttChart onEditTask={handleEditTask} />
+            ) : null}
+          </main>
 
-      <footer className="app-footer">
-        <p>My Todolist • Built with React + Vite</p>
-      </footer>
+          <MobileToolbar
+            onQuickAdd={handleQuickAdd}
+            onVoiceInput={handleVoiceInput}
+          />
+
+          <footer className="app-footer">
+            <p>My Todolist • Built with React + Vite</p>
+          </footer>
+        </>
+      )}
 
       {showForm && (
         <TaskForm editingTask={editingTask} onClose={handleCloseForm} />
