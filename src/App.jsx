@@ -23,7 +23,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import ConflictModal from './components/ConflictModal';
 import InsightsPanel from './components/InsightsPanel';
 import AgentPage from './pages/AgentPage';
-import CronPage from './pages/CronPage';
+import CronPage, { PageContext } from './pages/CronPage';
 import ProjectTagManagementModal from './components/ProjectTagManagementModal';
 import { checkReminders, requestNotificationPermission, sendNotification } from './utils/reminder';
 import { getGistConfig, createBackupGist } from './utils/gistSync';
@@ -297,6 +297,7 @@ function AppContent() {
   });
 
   return (
+    <PageContext.Provider value={{ page: currentPage, setPage: setCurrentPage }}>
     <div className="app">
       <OfflineBanner />
       {isRecording && <div className="voice-recording">🎤 正在录音...</div>}
@@ -520,6 +521,7 @@ function AppContent() {
         />
       ))}
     </div>
+    </PageContext.Provider>
   );
 }
 

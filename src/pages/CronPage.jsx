@@ -1,12 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import CronTaskPanel from '../components/CronTaskPanel';
 import { useTaskContext } from '../context/TaskContext';
 
+// Page navigation context — allows sub-pages like CronPage to navigate
+export const PageContext = createContext(null);
+export const usePage = () => useContext(PageContext);
+
 export default function CronPage() {
   const { allTasks } = useTaskContext();
+  const pageCtx = usePage();
+  const setPage = pageCtx?.setPage;
 
   const handleBack = () => {
-    window.history.back();
+    if (setPage) {
+      setPage('main');
+    } else {
+      window.history.back();
+    }
   };
 
   return (
