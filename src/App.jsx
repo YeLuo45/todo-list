@@ -305,8 +305,8 @@ function AppContent() {
       <header className="app-header">
         <div className="header-row">
           <div>
-            <h1>📝 My Todolist</h1>
-            <p className="subtitle">Manage your tasks efficiently</p>
+            <h1>待办清单</h1>
+            <p className="subtitle">离线优先 · 智能排序 · 多端同步</p>
           </div>
           <div className="header-actions">
             <button className="mobile-sidebar-toggle" onClick={() => setSidebarMobileOpen(true)} title="项目">
@@ -422,7 +422,7 @@ function AppContent() {
           />
 
           <footer className="app-footer">
-            <p>My Todolist • Built with React + Vite</p>
+            <p>Hermes Todo · React + Vite</p>
           </footer>
         </>
       )}

@@ -1,0 +1,46 @@
+/* Remap hardcoded legacy blues to accent token */
+
+.settings-modal .save-btn,
+.settings-modal .btn-primary,
+.import-export-modal .tab.active,
+.import-export-modal .btn-import,
+.google-calendar-sync-modal .connect-btn,
+.project-tag-management-modal .btn-save,
+.stats-dashboard .tab.active,
+.stats-dashboard .chart-bar,
+.milestone-board .progress-fill,
+.mcp-sync .tab.active,
+.mcp-sync .btn-connect,
+.kanban-board .add-column-btn:hover,
+.task-detail-modal .link {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff;
+}
+
+.settings-modal input:focus,
+.import-export-modal input:focus,
+.project-tag-management-modal input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px var(--accent-bg) !important;
+}
+
+.offline-banner {
+  background: var(--warning-bg) !important;
+  color: var(--warning) !important;
+  border: none !important;
+}
+
+.reminder-toast {
+  background: var(--surface-elevated) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-h) !important;
+}
+
+.stats-dashboard .chart-bar-fill {
+  background: linear-gradient(to top, var(--accent), var(--accent-hover)) !important;
+}
+
+.task-item .swipe-action-delete {
+  background: var(--danger) !important;
+}
